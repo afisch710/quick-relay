@@ -8,24 +8,21 @@ on:
       - 'apps/web/**'
 
 permissions:
-  # Required for uploading and deploying to GitHub Pages
   pages: write
   id-token: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    # By default, all "run" commands will happen in the apps/web directory.
     defaults:
       run:
         working-directory: apps/web
 
     steps:
-      - name: Check out Code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -39,11 +36,15 @@ jobs:
       - name: Build Project
         run: yarn build
 
+      - name: Debug - List Build Directory
+        run: ls -la build
+
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # The build output directory for a typical CRA is "build"
+          name: github-pages
           path: build
+          retention-days: 1
 
   deploy:
     needs: build
@@ -54,4 +55,4 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v1
