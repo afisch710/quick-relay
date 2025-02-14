@@ -20,7 +20,7 @@
     "eject": "react-scripts eject",
     "predeploy": "yarn build",
     "deploy": "gh-pages -d build",
-    "lint": "eslint --ext .js,.jsx src"
+    "lint": "eslint \"src/**/*.{js,jsx}\""
   },
   "eslintConfig": {
     "extends": [
