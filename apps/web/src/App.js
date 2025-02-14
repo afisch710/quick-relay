@@ -101,7 +101,7 @@ function App() {
       </section>
 
       <footer style={footerStyle}>
-        <p><strong>SessionID:</strong> {sessionId}</p>
+        <p><strong>Session ID:</strong> {sessionId}</p>
         <p>
           Universal Link: <code>{universalLinkUrl}</code>
         </p>
