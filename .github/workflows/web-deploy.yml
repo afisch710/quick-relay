@@ -32,6 +32,11 @@ jobs:
       - name: Build Project
         run: yarn build
 
+      - name: Configure Git Identity
+        run: |
+          git config --global user.email "auto-deploy@quick-relay.com"
+          git config --global user.name "Quick Relay CI"
+
       - name: Deploy to GitHub Pages
         run: yarn deploy
         env:
