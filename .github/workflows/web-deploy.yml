@@ -36,9 +36,10 @@ jobs:
       - name: Build Project
         run: yarn build
 
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v1
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v2
         with:
+          name: build
           path: build
 
   deploy:
@@ -46,8 +47,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download Pages Artifact
-        uses: actions/download-pages-artifact@v1
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: build
+
+      # Ensure the build folder is at the repository root
+      - name: Move Build Folder to Root
+        run: mv build ${GITHUB_WORKSPACE}/build
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
