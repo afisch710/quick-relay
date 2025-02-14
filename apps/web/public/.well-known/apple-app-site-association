@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.bundle.identifier",
+        "paths": [ "/join/*" ]
+      }
+    ]
+  }
+}
