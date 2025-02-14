@@ -7,8 +7,12 @@ on:
     paths:
       - 'apps/web/**'
 
+permissions:
+  pages: write
+  id-token: write
+
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,12 +36,21 @@ jobs:
       - name: Build Project
         run: yarn build
 
-      - name: Configure Git Identity
-        run: |
-          git config --global user.email "auto-deploy@quick-relay.com"
-          git config --global user.name "Quick Relay CI"
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Pages Artifact
+        uses: actions/download-pages-artifact@v1
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
 
       - name: Deploy to GitHub Pages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx gh-pages -d build -r https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+        uses: actions/deploy-pages@v1
