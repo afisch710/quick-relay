@@ -68,7 +68,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: QuickRelayWebsocketSignaling
-      Handler: handler.lambda_handler
+      Handler: signaling.handler.lambda_handler
       Runtime: python3.12
       Role: !GetAtt SignalingLambdaRole.Arn
       Code:
