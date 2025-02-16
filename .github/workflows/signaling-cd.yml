@@ -1,0 +1,88 @@
+name: Signaling Dev Release Pipeline
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - development
+    paths:
+      - 'services/signaling/VERSION'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'signaling-change') }}
+    steps:
+    - uses: actions/checkout@v4
+
+    # 2. Set up Python 3.12
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12.0'
+    
+    - name: Read Version
+      run: echo "VERSION=$(cat services/signaling/VERSION)" >> $GITHUB_ENV
+
+    - name: Set Environment Variables
+      run: |
+        echo "PACKAGE=signaling-v${{ env.VERSION }}.zip" >> $GITHUB_ENV
+        echo "S3_BUCKET=quickrelay-dev" >> $GITHUB_ENV
+        echo "S3_PREFIX=services/signaling" >> $GITHUB_ENV
+
+    - name: Copy and Package Python Files
+      working-directory: services/signaling
+      run: |
+        mkdir -p package
+        pip install . -t package/
+        cd package
+        zip -r ../${{ env.PACKAGE }} .
+        echo "Package created at: $(pwd)/../${{ env.PACKAGE }}"
+        ls -l ../
+
+    - name: Upload Lambda Package as Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: signaling-package
+        path: services/signaling/${{ env.PACKAGE }}
+
+    - name: Extract Original PR Number
+      id: extract_pr
+      run: |
+        PR_DESCRIPTION="${{ github.event.pull_request.body }}"
+        ORIGINAL_PR_NUMBER=$(echo "$PR_DESCRIPTION" | grep -oP 'PR #\K\d+')
+        echo "Original PR Number: $ORIGINAL_PR_NUMBER"
+        echo "::set-output name=original_pr_number::$ORIGINAL_PR_NUMBER"
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+  
+    - name: Upload to S3
+      working-directory: services/signaling
+      run: aws s3 cp ${{ env.PACKAGE }} s3://${{ env.S3_BUCKET }}/${{ env.S3_PREFIX }}/${{ env.PACKAGE }}
+
+    - name: Deploy to AWS CloudFormation
+      run: |
+        aws cloudformation deploy \
+          --template-file services/signaling/cloudformation.yaml \
+          --stack-name signaling \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides \
+            LambdaVersion=${{ env.VERSION }} \
+            EnvironmentType="Development" \
+            S3Bucket="${{ env.S3_BUCKET }}" \
+            S3Key="${{ env.S3_PREFIX }}/${{ env.PACKAGE }}"
+
+    - name: Tag Original Commit
+      if: steps.extract_pr.outputs.original_pr_number
+      run: |
+        git config --global user.email "quickrelay.dev@gmail.com"
+        git config --global user.name "quickrelay"
+        ORIGINAL_PR_NUMBER=${{ steps.extract_pr.outputs.original_pr_number }}
+        ORIGINAL_COMMIT_SHA=$(git rev-list -n 1 origin/development --before="Merge pull request #$ORIGINAL_PR_NUMBER")
+        git tag -a "signaling-v${{ env.VERSION }}" ${ORIGINAL_COMMIT_SHA} -m "Deployment tag for PR #$ORIGINAL_PR_NUMBER"
+        git push origin "signaling-v${{ env.VERSION }}"

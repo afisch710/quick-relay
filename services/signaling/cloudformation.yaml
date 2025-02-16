@@ -1,0 +1,144 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Quick Relay WebSocket Signaling Service.
+  This stack provisions the following resources:
+    - A DynamoDB table for storing session data.
+    - A Lambda function (deployed from S3) that handles WebSocket $connect events.
+      The Lambda creates a new session if no "sessionCode" query parameter is provided,
+      or attempts to join an existing session if a sessionCode is provided.
+      It also handles $disconnect events.
+    - An API Gateway WebSocket API with $connect and $disconnect routes.
+    - A deployment and stage for the WebSocket API.
+
+Parameters:
+  S3Bucket:
+    Type: String
+    Description: S3 bucket where the Lambda deployment package is stored.
+  S3Key:
+    Type: String
+    Description: S3 key (path) to the Lambda deployment package ZIP file.
+  EnvironmentType:
+    Type: String
+    Default: Development
+    AllowedValues:
+      - Development
+      - Production
+    Description: Deployment environment type.
+  DynamoDBTableName:
+    Type: String
+    Default: SignalingSessions
+    Description: The name of the DynamoDB table for storing session data.
+
+Resources:
+  ## DynamoDB Table for Session Data
+  QuickRelaySessionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref DynamoDBTableName
+      AttributeDefinitions:
+        - AttributeName: SessionCode
+          AttributeType: S
+      KeySchema:
+        - AttributeName: SessionCode
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  ## IAM Role for the Signaling Lambda
+  SignalingLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: QuickRelayWebsocketLambdaRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  ## Lambda function for WebSocket signaling
+  QuickRelayWebsocketLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: QuickRelayWebsocketSignaling
+      Handler: handler.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt SignalingLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3Key
+      Timeout: 60
+      MemorySize: 512
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref EnvironmentType
+          TABLE_NAME: !Ref DynamoDBTableName
+
+  ## API Gateway WebSocket API
+  QuickRelayWebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: QuickRelayWebSocketApi
+      ProtocolType: WEBSOCKET
+      # We use query string parameters to determine whether to create or join a session.
+      RouteSelectionExpression: "$request.querystring.sessionCode"
+
+  ## Integration between the WebSocket API and Lambda (AWS_PROXY)
+  WebSocketIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref QuickRelayWebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QuickRelayWebsocketLambdaFunction.Arn}/invocations
+      PayloadFormatVersion: "2.0"
+
+  ## $connect Route
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QuickRelayWebSocketApi
+      RouteKey: "$connect"
+      Target: !Sub integrations/${WebSocketIntegration}
+
+  ## $disconnect Route
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QuickRelayWebSocketApi
+      RouteKey: "$disconnect"
+      Target: "integrations/NO-OP"
+
+  ## Deployment of the WebSocket API
+  WebSocketDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    Properties:
+      ApiId: !Ref QuickRelayWebSocketApi
+    DependsOn:
+      - ConnectRoute
+      - DisconnectRoute
+
+  ## WebSocket Stage
+  WebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref QuickRelayWebSocketApi
+      AutoDeploy: true
+      StageName: prod
+
+  ## Lambda Permission for API Gateway
+  LambdaPermissionForWebSocket:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt QuickRelayWebsocketLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QuickRelayWebSocketApi}/*
+
+Outputs:
+  WebSocketEndpoint:
+    Description: "The WebSocket endpoint for the Quick Relay signaling service"
+    Value: !Sub "wss://${QuickRelayWebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/prod"

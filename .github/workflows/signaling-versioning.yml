@@ -1,0 +1,31 @@
+name: Increment signaling version build number
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - development
+    paths:
+      - 'services/signaling/**'
+
+jobs:
+  increment-version:
+    runs-on: ubuntu-latest
+    # Ensure this runs only if the PR is merged and not triggered by automation
+    if: ${{ github.event.pull_request.user.login != 'quickrelay' && !startsWith(github.head_ref, 'automation/') }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history
+
+    - name: Increment version and create a pull request
+      run: ./.github/scripts/workflow/increment_build_version.sh
+      env:
+        QUICKRELAY_PAT: ${{ secrets.QUICKRELAY_PAT }}
+        GITHUB_ACTOR: quickrelay
+        GITHUB_REPOSITORY: afisch710/quick-relay
+        GITHUB_SERVER_URL: https://github.com
+        VERSION_FILE: services/signaling/VERSION
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        SERVICE_NAME: signaling
