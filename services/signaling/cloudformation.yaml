@@ -38,10 +38,15 @@ Resources:
       AttributeDefinitions:
         - AttributeName: SessionCode
           AttributeType: S
+        - AttributeName: ExpiresAt
+          AttributeType: N
       KeySchema:
         - AttributeName: SessionCode
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: ExpiresAt
+        Enabled: true
 
   ## IAM Role for the Signaling Lambda
   SignalingLambdaRole:
@@ -104,14 +109,6 @@ Resources:
       RouteKey: "$connect"
       Target: !Sub integrations/${WebSocketIntegration}
 
-  ## $disconnect Route
-  DisconnectRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref QuickRelayWebSocketApi
-      RouteKey: "$disconnect"
-      Target: "integrations/NO-OP"
-
   ## Deployment of the WebSocket API
   WebSocketDeployment:
     Type: AWS::ApiGatewayV2::Deployment
@@ -119,7 +116,6 @@ Resources:
       ApiId: !Ref QuickRelayWebSocketApi
     DependsOn:
       - ConnectRoute
-      - DisconnectRoute
 
   ## WebSocket Stage
   WebSocketStage:

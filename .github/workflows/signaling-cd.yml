@@ -69,7 +69,7 @@ jobs:
       run: |
         aws cloudformation deploy \
           --template-file services/signaling/cloudformation.yaml \
-          --stack-name signaling \
+          --stack-name quick-relay-signaling \
           --capabilities CAPABILITY_NAMED_IAM \
           --parameter-overrides \
             LambdaVersion=${{ env.VERSION }} \
