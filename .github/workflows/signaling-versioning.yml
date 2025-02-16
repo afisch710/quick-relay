@@ -18,6 +18,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Fetch all history
+        persist-credentials: false
 
     - name: Increment version and create a pull request
       run: ./.github/scripts/workflow/increment_build_version.sh
