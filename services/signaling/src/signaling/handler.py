@@ -4,6 +4,7 @@ import boto3
 import random
 from datetime import datetime, timezone, timedelta
 from boto3.dynamodb.types import TypeDeserializer
+from botocore.exceptions import ClientError
 
 deserializer = TypeDeserializer()
 
@@ -14,25 +15,35 @@ def deserialize_item(item):
 def create_handler(table):
     """
     Returns a Lambda handler that uses the provided DynamoDB table.
-    This handler is intended for WebSocket API events:
-      - $connect: If query string 'sessionCode' is present, join that session.
-                  Otherwise, create a new session.
-      - $disconnect: Perform cleanup (e.g., remove connection from session).
+    Handles WebSocket events on:
+      - $connect: Just returns 200 (optionally stores connection info).
+      - "init": Handles session creation/join based on the payload.
+      - $disconnect: Logs disconnect.
     """
     def handler(event, context):
         print("Received event:", json.dumps(event, indent=2))
         route_key = event.get("requestContext", {}).get("routeKey")
         connection_id = event.get("requestContext", {}).get("connectionId")
         
-        # Set up API Gateway Management API to post messages back to the client.
+        # Set up API Gateway Management API for sending messages.
         domain_name = event["requestContext"]["domainName"]
         stage = event["requestContext"]["stage"]
         endpoint = f"https://{domain_name}/{stage}"
         api_gateway = boto3.client("apigatewaymanagementapi", endpoint_url=endpoint)
         
         if route_key == "$connect":
-            query_params = event.get("queryStringParameters") or {}
-            session_code = query_params.get("sessionCode")
+            # On $connect, do minimal work. Optionally store connection info.
+            print(f"Connection {connection_id} established.")
+            return {"statusCode": 200}
+        
+        elif route_key == "init":
+            # This route handles session creation/joining.
+            try:
+                body = json.loads(event.get("body") or "{}")
+            except Exception:
+                return {"statusCode": 400, "body": "Invalid JSON in request body"}
+            
+            session_code = body.get("sessionCode")
             if session_code:
                 # Join session flow.
                 try:
@@ -42,7 +53,6 @@ def create_handler(table):
                         api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
                         return {"statusCode": 404}
                     else:
-                        # Optionally, update the session with the new connection_id.
                         message = json.dumps({"message": "Joined session", "sessionCode": session_code})
                         api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
                         return {"statusCode": 200}
@@ -52,10 +62,10 @@ def create_handler(table):
                     api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
                     return {"statusCode": 500}
             else:
-                # In the session creation block
+                # Create session flow.
                 new_session_code = generate_short_code()
                 now = datetime.now(timezone.utc)
-                expires_at = int((now + timedelta(hours=1)).timestamp())  # Unix epoch time
+                expires_at = int((now + timedelta(hours=1)).timestamp())
                 try:
                     table.put_item(Item={
                         "SessionCode": new_session_code,
@@ -81,6 +91,5 @@ def generate_short_code():
 
 # Default wiring: use the table specified by the environment variable TABLE_NAME.
 _default_table = boto3.resource('dynamodb').Table(os.environ.get("TABLE_NAME", "SignalingSessions"))
-# Expose the table as a global for backward compatibility if needed.
 table = _default_table
 lambda_handler = create_handler(_default_table)
