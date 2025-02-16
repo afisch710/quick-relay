@@ -88,4 +88,4 @@ jobs:
         ORIGINAL_PR_NUMBER=${{ steps.extract_pr.outputs.original_pr_number }}
         ORIGINAL_COMMIT_SHA=$(git rev-list -n 1 origin/development --before="Merge pull request #$ORIGINAL_PR_NUMBER")
         git tag -a "signaling-v${{ env.VERSION }}" ${ORIGINAL_COMMIT_SHA} -m "Deployment tag for PR #$ORIGINAL_PR_NUMBER"
-        git push "https://${GITHUB_ACTOR}:${{ secrets.SMARTERWEATHER_PAT }}@github.com/${GITHUB_REPOSITORY}.git" "signaling-v${VERSION}"
+        git push "https://${GITHUB_ACTOR}:${{ secrets.QUICKRELAY_PAT }}@github.com/${GITHUB_REPOSITORY}.git" "signaling-v${VERSION}"
