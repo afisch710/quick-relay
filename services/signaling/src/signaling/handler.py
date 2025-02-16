@@ -2,7 +2,7 @@ import json
 import os
 import boto3
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from boto3.dynamodb.types import TypeDeserializer
 
 deserializer = TypeDeserializer()
@@ -52,14 +52,16 @@ def create_handler(table):
                     api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
                     return {"statusCode": 500}
             else:
-                # Create session flow.
+                # In the session creation block
                 new_session_code = generate_short_code()
-                now = datetime.now(timezone.utc).isoformat()
+                now = datetime.now(timezone.utc)
+                expires_at = int((now + timedelta(hours=1)).timestamp())  # Unix epoch time
                 try:
                     table.put_item(Item={
                         "SessionCode": new_session_code,
-                        "CreatedAt": now,
-                        "ConnectionId": connection_id
+                        "CreatedAt": now.isoformat(),
+                        "ConnectionId": connection_id,
+                        "ExpiresAt": expires_at
                     })
                     message = json.dumps({"message": "Session created", "sessionCode": new_session_code})
                     api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
@@ -69,10 +71,6 @@ def create_handler(table):
                     message = json.dumps({"error": "Error creating session"})
                     api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
                     return {"statusCode": 500}
-        elif route_key == "$disconnect":
-            # Handle disconnection; for now, just log the disconnection.
-            print(f"Connection {connection_id} disconnected.")
-            return {"statusCode": 200}
         else:
             return {"statusCode": 400, "body": "Invalid route"}
     return handler
