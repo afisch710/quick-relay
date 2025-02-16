@@ -24,7 +24,7 @@ def create_handler(table):
         route_key = event.get("requestContext", {}).get("routeKey")
         connection_id = event.get("requestContext", {}).get("connectionId")
         
-        # Set up API Gateway Management API to post messages back to the client
+        # Set up API Gateway Management API to post messages back to the client.
         domain_name = event["requestContext"]["domainName"]
         stage = event["requestContext"]["stage"]
         endpoint = f"https://{domain_name}/{stage}"
