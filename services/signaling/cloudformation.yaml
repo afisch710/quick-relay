@@ -125,12 +125,28 @@ Resources:
       RouteKey: "$connect"
       Target: !Sub integrations/${WebSocketIntegration}
 
+  ## $connect Route (only establishes the connection)
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QuickRelayWebSocketApi
+      RouteKey: "$disconnect"
+      Target: !Sub integrations/${WebSocketIntegration}
+
   ## Custom "init" Route for session creation/joining
   InitRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref QuickRelayWebSocketApi
       RouteKey: "init"
+      Target: !Sub integrations/${WebSocketIntegration}
+  
+  ## Custom "signal" Route for relaying WebRTC signaling messages
+  SignalRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QuickRelayWebSocketApi
+      RouteKey: "signal"
       Target: !Sub integrations/${WebSocketIntegration}
 
   ## Deployment of the WebSocket API
@@ -140,7 +156,9 @@ Resources:
       ApiId: !Ref QuickRelayWebSocketApi
     DependsOn:
       - ConnectRoute
+      - DisconnectRoute
       - InitRoute
+      - SignalRoute
 
   ## WebSocket Stage
   WebSocketStage:
