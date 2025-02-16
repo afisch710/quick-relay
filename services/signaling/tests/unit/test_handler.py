@@ -19,7 +19,7 @@ class TestLambdaHandler(unittest.TestCase):
 
     @patch("boto3.client")
     def test_connect_route(self, mock_boto_client):
-        # Test the $connect route, which should simply return 200.
+        # $connect should simply return 200.
         mock_api = MagicMock()
         mock_api.post_to_connection.return_value = {}
         mock_boto_client.return_value = mock_api
@@ -36,20 +36,17 @@ class TestLambdaHandler(unittest.TestCase):
         }
         response = self.handler(event, self.context)
         self.assertEqual(response["statusCode"], 200)
-        # $connect does not trigger any table operation.
         self.mock_table.put_item.assert_not_called()
         self.mock_table.get_item.assert_not_called()
 
     @patch("boto3.client")
     def test_init_create_session(self, mock_boto_client):
-        # Test the "init" route without a sessionCode in the body, triggering session creation.
+        # Test "init" route to create a new session (no sessionCode provided).
         mock_api = MagicMock()
         mock_api.post_to_connection.return_value = {}
         mock_boto_client.return_value = mock_api
-        
-        # Simulate that table.put_item succeeds.
+
         self.mock_table.put_item.return_value = {}
-        # Create an event on the "init" route with no sessionCode.
         event = {
             "requestContext": {
                 "routeKey": "init",
@@ -61,12 +58,11 @@ class TestLambdaHandler(unittest.TestCase):
         }
         response = self.handler(event, self.context)
         self.assertEqual(response["statusCode"], 200)
-        # Verify that put_item was called for session creation.
         self.mock_table.put_item.assert_called_once()
 
     @patch("boto3.client")
     def test_init_join_session_success(self, mock_boto_client):
-        # Test the "init" route with a sessionCode in the body, simulating joining an existing session.
+        # Test "init" route to join an existing session.
         mock_api = MagicMock()
         mock_api.post_to_connection.return_value = {}
         mock_boto_client.return_value = mock_api
@@ -75,7 +71,8 @@ class TestLambdaHandler(unittest.TestCase):
         self.mock_table.get_item.return_value = {
             "Item": {
                 "SessionCode": {"S": session_code},
-                "CreatedAt": {"S": "2024-04-01T12:00:00"}
+                "CreatedAt": {"S": "2024-04-01T12:00:00"},
+                "ConnectionIds": ["existingConn"]
             }
         }
         event = {
@@ -93,11 +90,11 @@ class TestLambdaHandler(unittest.TestCase):
 
     @patch("boto3.client")
     def test_init_join_session_not_found(self, mock_boto_client):
-        # Test the "init" route with a sessionCode that does not exist.
+        # Test "init" route when the sessionCode is not found.
         mock_api = MagicMock()
         mock_api.post_to_connection.return_value = {}
         mock_boto_client.return_value = mock_api
-        
+
         self.mock_table.get_item.return_value = {}
         event = {
             "requestContext": {
@@ -111,8 +108,62 @@ class TestLambdaHandler(unittest.TestCase):
         response = self.handler(event, self.context)
         self.assertEqual(response["statusCode"], 404)
 
-    def test_invalid_route(self):
-        # Test an event with an unknown route.
+    @patch("boto3.client")
+    def test_signal_valid(self, mock_boto_client):
+        # Test "signal" route where a valid message is relayed.
+        mock_api = MagicMock()
+        mock_api.post_to_connection.return_value = {}
+        mock_boto_client.return_value = mock_api
+
+        # Simulate an existing session with multiple connections.
+        session_code = "123456"
+        self.mock_table.get_item.return_value = {
+            "Item": {
+                "SessionCode": {"S": session_code},
+                "ConnectionIds": [ "conn1", "conn2", "conn3" ]
+            }
+        }
+        # Sender is "conn1" so should relay to "conn2" and "conn3".
+        signal_payload = {
+            "action": "signal",
+            "sessionCode": session_code,
+            "type": "offer",
+            "sdp": "<SDP offer data>"
+        }
+        event = {
+            "requestContext": {
+                "routeKey": "signal",
+                "connectionId": "conn1",
+                "domainName": "example.execute-api.us-east-1.amazonaws.com",
+                "stage": "prod"
+            },
+            "body": json.dumps(signal_payload)
+        }
+        response = self.handler(event, self.context)
+        self.assertEqual(response["statusCode"], 200)
+        # Verify that post_to_connection is called for connections "conn2" and "conn3" but not for "conn1".
+        calls = [call[1]["ConnectionId"] for call in mock_api.post_to_connection.call_args_list]
+        self.assertIn("conn2", calls)
+        self.assertIn("conn3", calls)
+        self.assertNotIn("conn1", calls)
+
+    @patch("boto3.client")
+    def test_disconnect_route(self, mock_boto_client):
+        # Test the $disconnect route.
+        event = {
+            "requestContext": {
+                "routeKey": "$disconnect",
+                "connectionId": "conn1",
+                "domainName": "example.execute-api.us-east-1.amazonaws.com",
+                "stage": "prod"
+            },
+            "body": None
+        }
+        response = self.handler(event, self.context)
+        self.assertEqual(response["statusCode"], 200)
+
+    @patch("boto3.client")
+    def test_invalid_route(self, mock_boto_client):
         event = {
             "requestContext": {
                 "routeKey": "unknown",

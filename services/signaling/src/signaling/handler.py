@@ -16,9 +16,12 @@ def create_handler(table):
     """
     Returns a Lambda handler that uses the provided DynamoDB table.
     Handles WebSocket events on:
-      - $connect: Just returns 200 (optionally stores connection info).
-      - "init": Handles session creation/join based on the payload.
-      - $disconnect: Logs disconnect.
+      - $connect: Establishes the connection.
+      - "init": Processes an initial message to create or join a session.
+                If no sessionCode is provided, a new session is created.
+                If a sessionCode is provided, the client is added to the session if it has less than 2 connections.
+      - "signal": Relays signaling messages to other connections in the session.
+      - $disconnect: Logs disconnection.
     """
     def handler(event, context):
         print("Received event:", json.dumps(event, indent=2))
@@ -32,12 +35,12 @@ def create_handler(table):
         api_gateway = boto3.client("apigatewaymanagementapi", endpoint_url=endpoint)
         
         if route_key == "$connect":
-            # On $connect, do minimal work. Optionally store connection info.
+            # $connect: Only establishes the connection.
             print(f"Connection {connection_id} established.")
             return {"statusCode": 200}
         
         elif route_key == "init":
-            # This route handles session creation/joining.
+            # Handles session creation or joining.
             try:
                 body = json.loads(event.get("body") or "{}")
             except Exception:
@@ -53,6 +56,23 @@ def create_handler(table):
                         api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
                         return {"statusCode": 404}
                     else:
+                        # Extract current ConnectionIds.
+                        session = result["Item"]
+                        # Assume ConnectionIds is stored as a list.
+                        current_ids = session.get("ConnectionIds", [])
+                        if len(current_ids) >= 2:
+                            message = json.dumps({"error": "Session is full"})
+                            api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
+                            return {"statusCode": 403}
+                        # Otherwise, append the new connection ID.
+                        table.update_item(
+                            Key={"SessionCode": session_code},
+                            UpdateExpression="SET ConnectionIds = list_append(if_not_exists(ConnectionIds, :empty), :conn)",
+                            ExpressionAttributeValues={
+                                ":conn": [connection_id],
+                                ":empty": []
+                            }
+                        )
                         message = json.dumps({"message": "Joined session", "sessionCode": session_code})
                         api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
                         return {"statusCode": 200}
@@ -70,7 +90,7 @@ def create_handler(table):
                     table.put_item(Item={
                         "SessionCode": new_session_code,
                         "CreatedAt": now.isoformat(),
-                        "ConnectionId": connection_id,
+                        "ConnectionIds": [connection_id],
                         "ExpiresAt": expires_at
                     })
                     message = json.dumps({"message": "Session created", "sessionCode": new_session_code})
@@ -81,6 +101,40 @@ def create_handler(table):
                     message = json.dumps({"error": "Error creating session"})
                     api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
                     return {"statusCode": 500}
+        
+        elif route_key == "signal":
+            # Relay signaling messages to all connections in the session except the sender.
+            try:
+                body = json.loads(event.get("body") or "{}")
+            except Exception:
+                return {"statusCode": 400, "body": "Invalid JSON in request body"}
+            
+            session_code = body.get("sessionCode")
+            if not session_code:
+                return {"statusCode": 400, "body": "Missing sessionCode in signal message"}
+            
+            try:
+                result = table.get_item(Key={"SessionCode": session_code})
+                if "Item" not in result:
+                    return {"statusCode": 404, "body": "Session not found"}
+                
+                session = result["Item"]
+                connection_ids = session.get("ConnectionIds", [])
+                for cid in connection_ids:
+                    if cid != connection_id:
+                        try:
+                            api_gateway.post_to_connection(ConnectionId=cid, Data=json.dumps(body))
+                        except ClientError as e:
+                            if e.response.get("Error", {}).get("Code") == "GoneException":
+                                print(f"Connection {cid} is gone.")
+                return {"statusCode": 200, "body": "Signal relayed"}
+            except Exception as e:
+                print("Error relaying signal:", str(e))
+                return {"statusCode": 500, "body": "Error relaying signal"}
+        
+        elif route_key == "$disconnect":
+            print(f"Connection {connection_id} disconnected.")
+            return {"statusCode": 200}
         else:
             return {"statusCode": 400, "body": "Invalid route"}
     return handler
