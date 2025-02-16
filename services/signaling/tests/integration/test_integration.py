@@ -1,7 +1,7 @@
 import json
 import os
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 # Fake DynamoDB implementation.
 class FakeDynamoDBTable:
@@ -28,7 +28,7 @@ class FakeDynamoDBTable:
 # A fake API Gateway Management API client for testing.
 class FakeAPIGatewayClient:
     def post_to_connection(self, ConnectionId, Data):
-        # Simply log the call (or do nothing) for tests.
+        # For testing, simply print out the call.
         print(f"Fake post_to_connection: ConnectionId={ConnectionId}, Data={Data}")
         return {}
 
@@ -36,7 +36,7 @@ class FakeAPIGatewayClient:
 def fake_boto_client(service, endpoint_url=None):
     if service == "apigatewaymanagementapi":
         return FakeAPIGatewayClient()
-    # For other services, call the original boto3.client.
+    # Otherwise, return the real boto3 client.
     import boto3
     return boto3.client(service, endpoint_url=endpoint_url)
 
@@ -46,12 +46,12 @@ from signaling.handler import create_handler, generate_short_code
 class TestWebsocketHandlerWithFakeDynamoDB(unittest.TestCase):
     def setUp(self):
         # Set environment variable for TABLE_NAME.
-        os.environ["TABLE_NAME"] = "TestSignalingSessions"
+        os.environ["TABLE_NAME"] = "SignalingSessions"
         # Instantiate our fake DynamoDB table.
         self.fake_table = FakeDynamoDBTable()
         # Create a handler instance using dependency injection.
         self.handler = create_handler(self.fake_table)
-        # Patch boto3.client so that the signaling handler uses our fake API Gateway client.
+        # Patch boto3.client globally to return our fake API Gateway client.
         self.original_boto_client = None
         import boto3
         self.original_boto_client = boto3.client
@@ -63,8 +63,8 @@ class TestWebsocketHandlerWithFakeDynamoDB(unittest.TestCase):
         boto3.client = self.original_boto_client
         del os.environ["TABLE_NAME"]
 
-    def test_connect_create_session(self):
-        # Simulate a $connect event without a sessionCode (should create a session).
+    def test_connect_route(self):
+        # Test the $connect route.
         event = {
             "requestContext": {
                 "routeKey": "$connect",
@@ -76,43 +76,61 @@ class TestWebsocketHandlerWithFakeDynamoDB(unittest.TestCase):
             "body": None
         }
         response = self.handler(event, None)
+        # $connect simply returns 200.
         self.assertEqual(response["statusCode"], 200)
-        # Verify that a session was created in the fake table.
-        self.assertEqual(len(self.fake_table.store), 1)
 
-    def test_connect_join_session_success(self):
-        # Pre-populate the fake table with a session.
-        session_code = "123456"
-        self.fake_table.put_item({
-            "SessionCode": session_code,
-            "CreatedAt": datetime.now(timezone.utc).isoformat(),
-            "ConnectionId": "existingConn"
-        })
-        # Simulate a $connect event with a sessionCode to join.
+    def test_init_create_session(self):
+        # Test the "init" route for session creation (no sessionCode provided).
         event = {
             "requestContext": {
-                "routeKey": "$connect",
+                "routeKey": "init",
                 "connectionId": "conn2",
                 "domainName": "example.execute-api.us-east-1.amazonaws.com",
                 "stage": "prod"
             },
-            "queryStringParameters": {"sessionCode": session_code},
-            "body": None
+            "body": json.dumps({"action": "init"})  # No sessionCode field.
         }
         response = self.handler(event, None)
         self.assertEqual(response["statusCode"], 200)
+        # Verify that a session was created in our fake table.
+        self.assertEqual(len(self.fake_table.store), 1)
+        # Optionally, print out the stored session for debugging.
+        print("Stored sessions:", self.fake_table.store)
 
-    def test_connect_join_session_not_found(self):
-        # Simulate a $connect event with a non-existent sessionCode.
+    def test_init_join_session_success(self):
+        # Pre-populate fake table with a session.
+        session_code = "123456"
+        now = datetime.now(timezone.utc)
+        expires_at = int((now + timedelta(hours=1)).timestamp())
+        self.fake_table.put_item({
+            "SessionCode": session_code,
+            "CreatedAt": now.isoformat(),
+            "ConnectionId": "existingConn",
+            "ExpiresAt": expires_at
+        })
+        # Test the "init" route with a sessionCode to join.
         event = {
             "requestContext": {
-                "routeKey": "$connect",
+                "routeKey": "init",
                 "connectionId": "conn3",
                 "domainName": "example.execute-api.us-east-1.amazonaws.com",
                 "stage": "prod"
             },
-            "queryStringParameters": {"sessionCode": "000000"},
-            "body": None
+            "body": json.dumps({"action": "init", "sessionCode": session_code})
+        }
+        response = self.handler(event, None)
+        self.assertEqual(response["statusCode"], 200)
+
+    def test_init_join_session_not_found(self):
+        # Test the "init" route with a sessionCode that does not exist.
+        event = {
+            "requestContext": {
+                "routeKey": "init",
+                "connectionId": "conn4",
+                "domainName": "example.execute-api.us-east-1.amazonaws.com",
+                "stage": "prod"
+            },
+            "body": json.dumps({"action": "init", "sessionCode": "000000"})
         }
         response = self.handler(event, None)
         self.assertEqual(response["statusCode"], 404)

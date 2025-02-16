@@ -1,15 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   Quick Relay WebSocket Signaling Service.
-  This stack provisions the following resources:
-    - A DynamoDB table for storing session data.
-    - A Lambda function (deployed from S3) that handles WebSocket $connect events.
-      The Lambda creates a new session if no "sessionCode" query parameter is provided,
-      or attempts to join an existing session if a sessionCode is provided.
-      It also handles $disconnect events.
-    - An API Gateway WebSocket API with $connect routes.
+  This stack provisions:
+    - A DynamoDB table for storing session data (with TTL for cleanup).
+    - A Lambda function (from S3) that handles WebSocket events:
+        • $connect: Only establishes the connection.
+        • "init": Processes an initial message from the client. If the payload contains no sessionCode, it creates a new session and returns a new code; if it contains a sessionCode, it attempts to join an existing session.
+    - An API Gateway WebSocket API with routes for $connect, "init".
     - A deployment and stage for the WebSocket API.
-
+    
 Parameters:
   S3Bucket:
     Type: String
@@ -56,9 +55,9 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service:
+              Service: 
                 - lambda.amazonaws.com
-            Action:
+            Action: 
               - sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
@@ -107,8 +106,8 @@ Resources:
     Properties:
       Name: QuickRelayWebSocketApi
       ProtocolType: WEBSOCKET
-      # We use query string parameters to determine whether to create or join a session.
-      RouteSelectionExpression: "$request.querystring.sessionCode"
+      # Use the "action" field in the JSON body to route messages.
+      RouteSelectionExpression: "$request.body.action"
 
   ## Integration between the WebSocket API and Lambda (AWS_PROXY)
   WebSocketIntegration:
@@ -118,12 +117,20 @@ Resources:
       IntegrationType: AWS_PROXY
       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QuickRelayWebsocketLambdaFunction.Arn}/invocations
 
-  ## $connect Route
+  ## $connect Route (only establishes the connection)
   ConnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref QuickRelayWebSocketApi
       RouteKey: "$connect"
+      Target: !Sub integrations/${WebSocketIntegration}
+
+  ## Custom "init" Route for session creation/joining
+  InitRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref QuickRelayWebSocketApi
+      RouteKey: "init"
       Target: !Sub integrations/${WebSocketIntegration}
 
   ## Deployment of the WebSocket API
@@ -133,6 +140,7 @@ Resources:
       ApiId: !Ref QuickRelayWebSocketApi
     DependsOn:
       - ConnectRoute
+      - InitRoute
 
   ## WebSocket Stage
   WebSocketStage:
