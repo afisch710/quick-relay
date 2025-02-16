@@ -42,7 +42,7 @@ def create_handler(table):
                         api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
                         return {"statusCode": 404}
                     else:
-                        # Optionally, update the session with the new connection_id.
+                        # Optionally, update the session with the new connection_id
                         message = json.dumps({"message": "Joined session", "sessionCode": session_code})
                         api_gateway.post_to_connection(ConnectionId=connection_id, Data=message)
                         return {"statusCode": 200}
