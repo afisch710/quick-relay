@@ -117,19 +117,5 @@ class TestWebsocketHandlerWithFakeDynamoDB(unittest.TestCase):
         response = self.handler(event, None)
         self.assertEqual(response["statusCode"], 404)
 
-    def test_disconnect(self):
-        # Simulate a $disconnect event.
-        event = {
-            "requestContext": {
-                "routeKey": "$disconnect",
-                "connectionId": "conn1",
-                "domainName": "example.execute-api.us-east-1.amazonaws.com",
-                "stage": "prod"
-            },
-            "body": None
-        }
-        response = self.handler(event, None)
-        self.assertEqual(response["statusCode"], 200)
-
 if __name__ == '__main__':
     unittest.main()

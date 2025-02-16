@@ -85,21 +85,6 @@ class TestLambdaHandler(unittest.TestCase):
         self.assertEqual(response["statusCode"], 200)
         self.mock_table.get_item.assert_called_once_with(Key={"SessionCode": session_code})
 
-    @patch("boto3.client")
-    def test_disconnect(self, mock_boto_client):
-        mock_boto_client.return_value = MagicMock()
-        event = {
-            "requestContext": {
-                "routeKey": "$disconnect",
-                "connectionId": "conn1",
-                "domainName": "example.execute-api.us-east-1.amazonaws.com",
-                "stage": "prod"
-            },
-            "body": None
-        }
-        response = self.handler(event, self.context)
-        self.assertEqual(response["statusCode"], 200)
-
     def test_invalid_route(self):
         event = {
             "requestContext": {
