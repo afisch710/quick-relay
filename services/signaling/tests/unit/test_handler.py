@@ -14,16 +14,16 @@ class TestLambdaHandler(unittest.TestCase):
     def setUp(self):
         self.context = DummyContext()
         self.mock_table = MagicMock()
+        # Create a handler instance using dependency injection.
         self.handler = create_handler(self.mock_table)
 
     @patch("boto3.client")
-    def test_connect_create_session(self, mock_boto_client):
-        # Patch the apigatewaymanagementapi client
+    def test_connect_route(self, mock_boto_client):
+        # Test the $connect route, which should simply return 200.
         mock_api = MagicMock()
         mock_api.post_to_connection.return_value = {}
         mock_boto_client.return_value = mock_api
-        
-        self.mock_table.put_item.return_value = {}
+
         event = {
             "requestContext": {
                 "routeKey": "$connect",
@@ -36,34 +36,41 @@ class TestLambdaHandler(unittest.TestCase):
         }
         response = self.handler(event, self.context)
         self.assertEqual(response["statusCode"], 200)
-        self.mock_table.put_item.assert_called_once()
+        # $connect does not trigger any table operation.
+        self.mock_table.put_item.assert_not_called()
+        self.mock_table.get_item.assert_not_called()
 
     @patch("boto3.client")
-    def test_connect_join_session_not_found(self, mock_boto_client):
+    def test_init_create_session(self, mock_boto_client):
+        # Test the "init" route without a sessionCode in the body, triggering session creation.
         mock_api = MagicMock()
         mock_api.post_to_connection.return_value = {}
         mock_boto_client.return_value = mock_api
         
-        self.mock_table.get_item.return_value = {}
+        # Simulate that table.put_item succeeds.
+        self.mock_table.put_item.return_value = {}
+        # Create an event on the "init" route with no sessionCode.
         event = {
             "requestContext": {
-                "routeKey": "$connect",
-                "connectionId": "conn3",
+                "routeKey": "init",
+                "connectionId": "conn2",
                 "domainName": "example.execute-api.us-east-1.amazonaws.com",
                 "stage": "prod"
             },
-            "queryStringParameters": {"sessionCode": "000000"},
-            "body": None
+            "body": json.dumps({"action": "init"})
         }
         response = self.handler(event, self.context)
-        self.assertEqual(response["statusCode"], 404)
+        self.assertEqual(response["statusCode"], 200)
+        # Verify that put_item was called for session creation.
+        self.mock_table.put_item.assert_called_once()
 
     @patch("boto3.client")
-    def test_connect_join_session_success(self, mock_boto_client):
+    def test_init_join_session_success(self, mock_boto_client):
+        # Test the "init" route with a sessionCode in the body, simulating joining an existing session.
         mock_api = MagicMock()
         mock_api.post_to_connection.return_value = {}
         mock_boto_client.return_value = mock_api
-        
+
         session_code = "123456"
         self.mock_table.get_item.return_value = {
             "Item": {
@@ -73,23 +80,43 @@ class TestLambdaHandler(unittest.TestCase):
         }
         event = {
             "requestContext": {
-                "routeKey": "$connect",
-                "connectionId": "conn2",
+                "routeKey": "init",
+                "connectionId": "conn3",
                 "domainName": "example.execute-api.us-east-1.amazonaws.com",
                 "stage": "prod"
             },
-            "queryStringParameters": {"sessionCode": session_code},
-            "body": None
+            "body": json.dumps({"action": "init", "sessionCode": session_code})
         }
         response = self.handler(event, self.context)
         self.assertEqual(response["statusCode"], 200)
         self.mock_table.get_item.assert_called_once_with(Key={"SessionCode": session_code})
 
+    @patch("boto3.client")
+    def test_init_join_session_not_found(self, mock_boto_client):
+        # Test the "init" route with a sessionCode that does not exist.
+        mock_api = MagicMock()
+        mock_api.post_to_connection.return_value = {}
+        mock_boto_client.return_value = mock_api
+        
+        self.mock_table.get_item.return_value = {}
+        event = {
+            "requestContext": {
+                "routeKey": "init",
+                "connectionId": "conn4",
+                "domainName": "example.execute-api.us-east-1.amazonaws.com",
+                "stage": "prod"
+            },
+            "body": json.dumps({"action": "init", "sessionCode": "000000"})
+        }
+        response = self.handler(event, self.context)
+        self.assertEqual(response["statusCode"], 404)
+
     def test_invalid_route(self):
+        # Test an event with an unknown route.
         event = {
             "requestContext": {
                 "routeKey": "unknown",
-                "connectionId": "conn4",
+                "connectionId": "conn5",
                 "domainName": "example.execute-api.us-east-1.amazonaws.com",
                 "stage": "prod"
             },
