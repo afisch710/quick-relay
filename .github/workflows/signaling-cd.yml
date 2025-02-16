@@ -13,7 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'signaling-change') }}
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
     # 2. Set up Python 3.12
     - name: Set up Python 3.12
