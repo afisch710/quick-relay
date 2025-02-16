@@ -74,6 +74,14 @@ Resources:
                   - dynamodb:UpdateItem
                   - dynamodb:Query
                 Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTableName}
+        - PolicyName: QuickRelayManageConnectionsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - execute-api:ManageConnections
+                Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${QuickRelayWebSocketApi}/*/POST/@connections/*
 
   ## Lambda function for WebSocket signaling
   QuickRelayWebsocketLambdaFunction:
