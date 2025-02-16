@@ -1,0 +1,83 @@
+name: Signaling Service Python CI
+
+on:
+  pull_request:
+    branches: [ development ]
+    paths:
+      - 'services/signaling/**'
+
+jobs:
+  pr-build:
+    runs-on: ubuntu-latest
+    # Ensure this runs only if the PR is merged and not triggered by automation
+    if: ${{ github.event.pull_request.user.login != 'quickrelay' && !startsWith(github.head_ref, 'automation/') }}
+    env:
+      LAMBDA_DIR: services/signaling
+      PACKAGE_DIR: services/signaling/package
+      ZIP_FILE: services/signaling/signaling.zip
+      AWS_REGION: us-east-1
+    steps:
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # 2. Configure AWS Credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      # 3. Validate AWS Cloudformation Template
+      - name: AWS CLI Validate CloudFormation Template
+        run: |
+          aws cloudformation validate-template --template-body file://services/signaling/cloudformation.yaml
+
+      # 4. Set up Python 3.12
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.0'
+
+      # 5. Upgrade pip
+      - name: Upgrade pip
+        run: pip install --upgrade pip
+
+      # 6. Install dependencies with tests
+      - name: Install dependencies with tests
+        working-directory: ${{ env.LAMBDA_DIR }}
+        run: pip install -e .[test]
+
+      # 7. Run pytest
+      - name: Run tests
+        working-directory: ${{ env.LAMBDA_DIR }}
+        run: pytest --junitxml=pytest-results.xml
+
+      # 8. Publish pytest results
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: ${{ env.LAMBDA_DIR }}/pytest-results.xml
+
+      # 9. Install deployment dependencies (excluding test dependencies)
+      - name: Install deployment dependencies
+        working-directory: ${{ env.LAMBDA_DIR }}
+        run: |
+          mkdir -p package
+          pip install . -t package/
+
+      # 10. Package Lambda function
+      - name: Package Lambda function
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: |
+          zip -r ../signaling.zip .
+
+      # 11. Upload Lambda package
+      - name: Upload Lambda package
+        uses: actions/upload-artifact@v4
+        with:
+          name: signaling-package
+          path: ${{ env.ZIP_FILE }}
