@@ -7,7 +7,7 @@ on:
       - 'services/signaling/**'
 
 jobs:
-  build:
+  pr-build:
     runs-on: ubuntu-latest
     # Ensure this runs only if the PR is merged and not triggered by automation
     if: ${{ github.event.pull_request.user.login != 'quickrelay' && !startsWith(github.head_ref, 'automation/') }}
