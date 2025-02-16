@@ -7,7 +7,7 @@ Description: >
       The Lambda creates a new session if no "sessionCode" query parameter is provided,
       or attempts to join an existing session if a sessionCode is provided.
       It also handles $disconnect events.
-    - An API Gateway WebSocket API with $connect and $disconnect routes.
+    - An API Gateway WebSocket API with $connect routes.
     - A deployment and stage for the WebSocket API.
 
 Parameters:
@@ -38,8 +38,6 @@ Resources:
       AttributeDefinitions:
         - AttributeName: SessionCode
           AttributeType: S
-        - AttributeName: ExpiresAt
-          AttributeType: N
       KeySchema:
         - AttributeName: SessionCode
           KeyType: HASH
@@ -99,7 +97,6 @@ Resources:
       ApiId: !Ref QuickRelayWebSocketApi
       IntegrationType: AWS_PROXY
       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${QuickRelayWebsocketLambdaFunction.Arn}/invocations
-      PayloadFormatVersion: "2.0"
 
   ## $connect Route
   ConnectRoute:
