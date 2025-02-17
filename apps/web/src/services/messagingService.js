@@ -1,11 +1,8 @@
 // src/services/messagingService.js
-import BaseService from './baseService.js';
 import webRTCChannel from './webRTCChannel';
 
-class MessagingService extends BaseService {
+class MessagingService {
     constructor() {
-        // We are not using a separate worker here since WebRTCChannel runs on the main thread.
-        super('messaging', null);
         this._onConnectedCallback = null;
         this.connected = false;
 
