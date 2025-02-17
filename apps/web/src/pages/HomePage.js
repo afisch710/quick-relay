@@ -24,11 +24,11 @@ function HomePage() {
     const isLocal = false;
     const universalLinkUrl = !isLocal ?
         sessionCode
-            ? `https://quick-relay.com/join?session=${sessionCode}`
+            ? `https://quick-relay.com/#/join?session=${sessionCode}`
             : 'https://quick-relay.com'
         :
         sessionCode
-            ? `http://192.168.0.2:3000/join?session=${sessionCode}`
+            ? `http://192.168.0.2:3000/#/join?session=${sessionCode}`
             : 'http://192.168.0.2:3000.com';
 
     // Trail animation for the two panes (left & right).
