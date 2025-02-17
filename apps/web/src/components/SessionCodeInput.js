@@ -1,5 +1,6 @@
 // src/components/SessionCodeInput.js
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { Box } from '@mui/material';
 
 function SessionCodeInput({ length = 6, value = '', onChange }) {
@@ -65,6 +66,12 @@ function SessionCodeInput({ length = 6, value = '', onChange }) {
             ))}
         </Box>
     );
+}
+
+SessionCodeInput.propTypes = {
+    length: PropTypes.number,
+    value: PropTypes.string,
+    onChange: PropTypes.func,
 }
 
 export default SessionCodeInput;

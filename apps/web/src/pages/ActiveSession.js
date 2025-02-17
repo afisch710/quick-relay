@@ -69,7 +69,7 @@ function ActiveSession() {
                 </Box>
                 <Box mt={4}>
                     <Typography variant="h6" gutterBottom>
-                        Send a Signal Message (e.g. "I'm ready")
+                        Send a message
                     </Typography>
                     <Box display="flex" gap={2} alignItems="center">
                         <TextField
