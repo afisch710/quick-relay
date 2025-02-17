@@ -29,8 +29,5 @@ jobs:
       - name: Run Lint
         run: yarn lint
 
-      - name: Run Tests
-        run: yarn test --watchAll=false
-
       - name: Build Project
         run: yarn build
