@@ -67,7 +67,7 @@ const Onboarding = ({ sessionToJoin = null, joinRequested = false, }) => {
                         item === OnboardingPage.start ?
                             (
                                 <animated.div style={{ ...style, position: 'absolute', width: '100%', height: '100%' }}>
-                                    <Start isLocal={true} sessionCode={sessionCode} requestJoin={() => setPage(OnboardingPage.join)} />
+                                    <Start isLocal={false} sessionCode={sessionCode} requestJoin={() => setPage(OnboardingPage.join)} />
                                 </animated.div>
                             ) :
                             (
