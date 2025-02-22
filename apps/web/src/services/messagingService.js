@@ -3,8 +3,17 @@ import webRTCChannel from './webRTCChannel';
 
 class MessagingService {
     constructor() {
+        this._onInitializedCallback = null;
         this._onConnectedCallback = null;
+        this._onDisconnectedCallback = null;
         this.connected = false;
+        this.initialized = false;
+
+        webRTCChannel.onInitialized(() => {
+            this.initialized = true;
+            console.log('MesagingService: RTC channel initialized');
+            this._onInitializedCallback();
+        })
 
         // Listen to the RTC layer's connected event and update our state.
         webRTCChannel.onConnected(() => {
@@ -14,6 +23,17 @@ class MessagingService {
                 this._onConnectedCallback();
             }
         });
+        webRTCChannel.onDisconnected(() => {
+            this.connected = false;
+            console.log("MessagingService: RTC disconnected.");
+            if (this._onDisconnectedCallback) {
+                this._onDisconnectedCallback();
+            }
+        });
+    }
+
+    isConnected() {
+        return this.connected;
     }
 
     /**
@@ -75,11 +95,29 @@ class MessagingService {
     }
 
     /**
+     * Registers a callback that is fired when the RTC channel is initialized.
+     * @param {function} callback
+     */
+    async onInitialized(callback) {
+        this._onInitializedCallback = callback;
+        return;
+    }
+
+    /**
      * Registers a callback that is fired when the RTC connection is fully established.
      * @param {function} callback
      */
     async onConnected(callback) {
         this._onConnectedCallback = callback;
+        return;
+    }
+
+    /**
+     * Registers a callback that is fired when the RTC connection is disconnected.
+     * @param {function} callback
+     */
+    async onDisconnected(callback) {
+        this._onDisconnectedCallback = callback;
         return;
     }
 }

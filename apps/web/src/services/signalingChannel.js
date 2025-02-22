@@ -2,11 +2,13 @@
 
 class SignalingChannel {
     constructor() {
+        this.id = new Date().getTime();
         this.url = "wss://3k91muimk2.execute-api.us-east-1.amazonaws.com/prod";
         this.websocket = null;
         this.sessionCode = null;
         this.messageCallback = null;
         this.partnerConnectedCallback = null;
+        this.initializedCallback = null;
         this.partnerConnected = false;
         this.initiator = false;
     }
@@ -18,6 +20,7 @@ class SignalingChannel {
             this.websocket.onopen = () => {
                 console.log("WebSocket connection established to", this.url);
                 resolve("Connected");
+                this.initializedCallback();
             };
             this.websocket.onerror = (err) => {
                 console.error("WebSocket error", err);
@@ -144,10 +147,19 @@ class SignalingChannel {
         this.partnerConnectedCallback = callback;
     }
 
+    /**
+    * Sets an external callback that is invoked when websocket is initialized.
+    * @param {function} callback The callback function.
+    */
+    onInitialized(callback) {
+        this.initializedCallback = callback;
+    }
+
     // Private method to create a new session.
     async #startSession() {
         const initMessage = { action: "init" };
-        this.websocket.send(JSON.stringify(initMessage));
+        // this.websocket.send(JSON.stringify(initMessage));
+        await this.sendMessage(initMessage);
         return new Promise((resolve, reject) => {
             const onInit = (data) => {
                 if (data.message && data.sessionCode) {
@@ -169,7 +181,8 @@ class SignalingChannel {
             throw new Error("WebSocket is not connected");
         }
         const initMessage = { action: "init", sessionCode };
-        this.websocket.send(JSON.stringify(initMessage));
+        // this.websocket.send(JSON.stringify(initMessage));
+        await this.sendMessage(initMessage);
         return new Promise((resolve, reject) => {
             const onJoin = (data) => {
                 if (data.message && data.sessionCode) {
