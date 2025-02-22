@@ -57,6 +57,24 @@ class SignalingChannel {
         });
     }
 
+    async waitForSocketOpen(timeout = 5000) {
+        return new Promise((resolve, reject) => {
+            const interval = 50;
+            let elapsed = 0;
+            const check = () => {
+                if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                    resolve();
+                } else if (elapsed >= timeout) {
+                    reject(new Error("WebSocket did not open in time"));
+                } else {
+                    elapsed += interval;
+                    setTimeout(check, interval);
+                }
+            };
+            check();
+        });
+    }
+
     /**
      * Opens the signaling channel.
      * If a sessionCode is provided, it attempts to join that session; if not, it creates a new session.
@@ -69,6 +87,7 @@ class SignalingChannel {
         // If no connection exists or it is not open, connect.
         if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
             await this.#connect();
+            await this.waitForSocketOpen();
         }
 
         this.initiator = !sessionCode;
