@@ -30,8 +30,8 @@ const Join = ({ sessionToJoin, requestStart }) => {
         if (isValidCode(sessionCode)) {
             setConnecting(true);
             connect(sessionCode).then((result) => {
+                setConnecting(false);
                 if (!result) {
-                    setConnecting(false);
                     setError('Unable to connect');
                 }
             });
