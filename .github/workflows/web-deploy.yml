@@ -52,6 +52,7 @@ jobs:
           aws cloudformation deploy \
             --template-file cloudformation.yaml \
             --stack-name pourtle-web \
+            --parameter-overrides CertificateArn="${{ secrets.POURTLE_CERTIFICATE_ARN }}" \
             --capabilities CAPABILITY_IAM
 
       # Deploy to S3 for pourtle.com
