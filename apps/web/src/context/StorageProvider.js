@@ -16,6 +16,7 @@ export const StorageProvider = ({ children }) => {
             window.localStorage.removeItem(testKey);
             return true;
         } catch (e) {
+            console.error(e);
             return false;
         }
     };

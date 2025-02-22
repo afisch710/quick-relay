@@ -6,7 +6,7 @@ import { styled } from '@mui/material/styles';
 import { useConnection } from '../../context/ConnectionProvider';
 import OnboardingPage from './OnboardingPage';
 
-const FlickerText = styled(Typography)(({ theme }) => ({
+const FlickerText = styled(Typography)(() => ({
     animation: 'flicker 1.5s ease-in-out infinite',
     '@keyframes flicker': {
         '0%': { opacity: 0.5 },
@@ -117,6 +117,7 @@ const Join = ({ sessionToJoin, requestStart }) => {
 
 Join.propTypes = {
     sessionCode: PropTypes.number.isRequired,
+    sessionToJoin: PropTypes.number,
     requestStart: PropTypes.func.isRequired,
 };
 

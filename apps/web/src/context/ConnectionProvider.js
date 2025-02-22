@@ -6,7 +6,7 @@ import messagingService from '../services/messagingService';
 const ConnectionContext = createContext({
     isInitialized: false,
     isConnected: false,
-    connect: async (sessionCode) => { },
+    connect: async () => { },
     disconnect: async () => { },
 });
 

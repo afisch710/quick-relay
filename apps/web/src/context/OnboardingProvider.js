@@ -6,7 +6,7 @@ import { Feature } from '../utility/Feature';
 
 const OnboardingContext = createContext({
     showValueProp: true,
-    updateShowValueProp: (show) => { },
+    updateShowValueProp: () => { },
 });
 
 export const OnboardingProvider = ({ children }) => {

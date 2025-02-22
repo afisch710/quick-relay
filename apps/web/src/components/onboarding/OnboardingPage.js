@@ -27,7 +27,7 @@ const OnboardingPage = ({ title, content, footer }) => {
             onRest: () => {
                 // Update the displayed title to the latest pending value.
                 // Use the updater callback to ensure we capture the new value.
-                setDisplayedTitle((prev) => {
+                setDisplayedTitle(() => {
                     const newTitle = pendingTitle.current;
                     // After updating, fade in.
                     api.start({

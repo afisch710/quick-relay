@@ -87,6 +87,14 @@ const AnimatedIcon = ({ IconComponent, onAnimationEnd, color, isMobile, directio
     </Box>
 );
 
+AnimatedIcon.propTypes = {
+    IconComponent: PropTypes.element.isRequired,
+    onAnimationEnd: PropTypes.func.isRequired,
+    color: PropTypes.string.isRequired,
+    isMobile: PropTypes.bool.isRequired,
+    direction: PropTypes.string.isRequired,
+}
+
 // OnboardingAnimation renders the phone and desktop icons, then spawns moving icons
 // that either flow from phone to PC (ltr) or from PC to phone (rtl).
 const OnboardingAnimation = ({ position }) => {
@@ -181,6 +189,7 @@ const OnboardingAnimation = ({ position }) => {
 
 OnboardingAnimation.propTypes = {
     position: PropTypes.string.isRequired,
+
 };
 
 export default OnboardingAnimation;
