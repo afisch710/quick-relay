@@ -46,7 +46,7 @@ jobs:
           aws-region: us-east-1
 
       # Deploy CloudFormation Stack for pourtle.com
-      - name: Deploy CloudFormation Stack for Beta
+      - name: Deploy CloudFormation Stack
         working-directory: apps/web
         run: |
           aws cloudformation deploy \
@@ -55,11 +55,11 @@ jobs:
             --capabilities CAPABILITY_IAM
 
       # Deploy to S3 for pourtle.com
-      - name: Deploy to S3 for Beta
+      - name: Deploy to S3
         working-directory: apps/web
         run: aws s3 sync build/ s3://pourtle-web --delete
 
-      # Retrieve CloudFront Distribution ID from CloudFormation Stack Output - Beta
+      # Retrieve CloudFront Distribution ID from CloudFormation Stack Output
       - name: Get CloudFront Distribution ID
         run: |
           DISTRIBUTION_ID=$(aws cloudformation describe-stacks \

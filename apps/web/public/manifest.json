@@ -1,6 +1,6 @@
 {
-  "short_name": "Quick Relay",
-  "name": "Quick Relay",
+  "short_name": "Pourtle",
+  "name": "Pourtle",
   "icons": [
     {
       "src": "favicon.ico",
@@ -8,8 +8,8 @@
       "type": "image/x-icon"
     },
     {
-      "src": "QRLogo.svg",
-      "type": "image/svg" 
+      "src": "pourtle.png",
+      "type": "image/png" 
     }
   ],
   "start_url": ".",
