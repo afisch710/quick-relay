@@ -131,7 +131,7 @@ const Start = ({ sessionCode, isLocal = false, requestJoin }) => {
                                         pr={2}
                                         borderRadius={4}
                                     >
-                                        <Typography variant={isMobile ? 'h4' : 'h5'} color='text.accent' >quick-relay.com/join</Typography>
+                                        <Typography variant={isMobile ? 'h4' : 'h5'} color='text.accent' >pourtle.com/join</Typography>
                                     </Box>
                                 </Box>
                                 <Box
