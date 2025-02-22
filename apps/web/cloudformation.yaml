@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for pourtle.com
+
+# Parameters:
+  # CertificateArn:
+  #   Type: String
+  #   Description: ARN of the ACM certificate for pourtle.com
+
+Resources:
+  # S3 Bucket for pourtle.com
+  AppBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: pourtle-web
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+
+  # S3 Bucket Policy to allow CloudFront access
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AppBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS: !Sub arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOAI}
+            Action: "s3:GetObject"
+            Resource: !Sub arn:aws:s3:::${AppBucket}/*
+  
+  # CloudFront Origin Access Identity
+  CloudFrontOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: OAI for pourtle.com
+
+  # CloudFront Distribution
+  AppDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        # Aliases:
+        #   - pourtle.com
+        Origins:
+          - DomainName: !GetAtt AppBucket.DomainName
+            Id: AppOrigin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${CloudFrontOAI}
+        CacheBehaviors:
+          - PathPattern: '/weather/alert/*'
+            TargetOriginId: AppOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            ForwardedValues:
+              QueryString: false
+              Cookies:
+                Forward: none
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+            MinTTL: 300  # TTL 5 minutes
+            MaxTTL: 300
+            DefaultTTL: 300
+        DefaultCacheBehavior:
+          TargetOriginId: AppOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: true  # Enable query string forwarding if needed
+            Cookies:
+              Forward: none
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          MinTTL: 0
+          DefaultTTL: 0
+          MaxTTL: 0
+        # ViewerCertificate:
+        #   AcmCertificateArn: !Ref CertificateArn
+        #   SslSupportMethod: sni-only
+        DefaultRootObject: index.html
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponsePagePath: /index.html
+            ResponseCode: 200
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 403
+            ResponsePagePath: /index.html
+            ResponseCode: 200
+            ErrorCachingMinTTL: 0
+
+Outputs:
+  BucketName:
+    Description: "Name of the S3 bucket to host the React app"
+    Value: !Ref AppBucket
+
+  CloudFrontDistributionID:
+    Description: "CloudFront Distribution ID"
+    Value: !Ref AppDistribution
+
+  CloudFrontDomainName:
+    Description: "CloudFront Distribution Domain Name"
+    Value: !GetAtt AppDistribution.DomainName

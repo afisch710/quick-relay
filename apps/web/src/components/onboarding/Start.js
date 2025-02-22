@@ -19,8 +19,10 @@ const Start = ({ sessionCode, isLocal = false, requestJoin }) => {
         // ? `http://192.168.68.72:3000/join?session=${sessionCode}`
         // : 'http://192.168.0.2:3000'
         : sessionCode
-            ? `https://quick-relay.com/join?session=${sessionCode}`
-            : 'https://quick-relay.com';
+            ? `https://dv33ucxfhynfc.cloudfront.net/join?session=${sessionCode}`
+            : 'https://dv33ucxfhynfc.cloudfront.net';
+        // ? `https://quick-relay.com/join?session=${sessionCode}`
+        // : 'https://quick-relay.com';
 
     // Handler for copying the universal link.
     const handleCopyLink = useCallback(() => {

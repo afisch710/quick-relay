@@ -1,54 +1,73 @@
-name: Deploy to GitHub Pages
+name: pourtle.com Release Pipeline
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - development
     paths:
       - 'apps/web/**'
 
-permissions:
-  pages: write
-  id-token: write
-
 jobs:
-  build:
+  build-and-deploy:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
 
+    steps:
+      # Checkout the repository
+      - uses: actions/checkout@v4
+
+      # Setup Node.js (Yarn requires Node.js)
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: 'apps/web/yarn.lock'
 
-      - name: Install Dependencies
-        run: yarn install
+      # Install Yarn dependencies (monorepo)
+      - name: Install Yarn dependencies (monorepo)
+        working-directory: apps/web
+        run: |
+          yarn install --frozen-lockfile
 
-      - name: Build Project
-        run: yarn build
+      # Build React app
+      - name: Build React app
+        working-directory: apps/web
+        run: |
+          yarn build
 
-      - name: Debug - List Build Directory
-        run: ls -la build
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
+      # Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          path: ${{ github.workspace }}/apps/web/build
-          name: github-pages
-          retention-days: 1
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      # Deploy CloudFormation Stack for pourtle.com
+      - name: Deploy CloudFormation Stack for Beta
+        working-directory: apps/web
+        run: |
+          aws cloudformation deploy \
+            --template-file cloudformation.yaml \
+            --stack-name pourtle-web \
+            --capabilities CAPABILITY_IAM
+
+      # Deploy to S3 for pourtle.com
+      - name: Deploy to S3 for Beta
+        working-directory: apps/web
+        run: aws s3 sync build/ s3://pourtle-web --delete
+
+      # Retrieve CloudFront Distribution ID from CloudFormation Stack Output - Beta
+      - name: Get CloudFront Distribution ID
+        run: |
+          DISTRIBUTION_ID=$(aws cloudformation describe-stacks \
+          --stack-name pourtle-web \
+          --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionID'].OutputValue" \
+          --output text)
+          echo "DISTRIBUTION_ID=$DISTRIBUTION_ID" >> $GITHUB_ENV
+
+      # Invalidate CloudFront Cache
+      - name: Invalidate CloudFront Distribution
+        run: aws cloudfront create-invalidation --distribution-id ${{ env.DISTRIBUTION_ID }} --paths "/*"
