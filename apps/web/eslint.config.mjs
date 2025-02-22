@@ -1,3 +1,4 @@
+// eslint.config.mjs
 import globals from "globals";
 import pluginJs from "@eslint/js";
 import pluginReact from "eslint-plugin-react";
@@ -26,7 +27,9 @@ export default [
     plugins: {
       react: pluginReact,
     },
-    rules: {},
+    rules: {
+      "import/no-anonymous-default-export": "off", // Disable the warning for anonymous default exports
+    },
   },
   pluginJs.configs.recommended,
   pluginReact.configs.flat.recommended,

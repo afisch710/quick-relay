@@ -11,8 +11,17 @@ class WebRTCChannel {
         this.onDataChannelMessage = null;
         // Callback for when the RTC connection is fully established.
         this._onConnectedCallback = null;
+        // Callback for when the RTC connection is disconnected.
+        this._onDisconnectedCallback = null;
+        // Callback for when the signaling channel is initialized
+        this._onInitializedCallback = null;
         // Flag to prevent duplicate negotiation.
         this.negotiationStarted = false;
+
+        signalingChannel.onInitialized(() => {
+            console.log('Signaling channel initialized');
+            this._onInitializedCallback();
+        })
 
         // Listen for partnerConnected events from signalingChannel.
         signalingChannel.onPartnerConnected(() => {
@@ -117,6 +126,19 @@ class WebRTCChannel {
                 if (this._onConnectedCallback) {
                     this._onConnectedCallback();
                 }
+
+                // Reset negotiation status
+                this.negotiationStarted = false;
+                
+                // Optionally, close the signaling channel once RTC is established.
+                signalingChannel.close();
+            } else if (this.peerConnection.connectionState === "disconnected") {
+                if (this._onDisconnectedCallback) {
+                    this._onDisconnectedCallback();
+                }
+
+                // Reset negotiation status
+                this.negotiationStarted = false;
             }
         };
     }
@@ -140,8 +162,6 @@ class WebRTCChannel {
             if (this._onConnectedCallback) {
                 this._onConnectedCallback();
             }
-            // Optionally, close the signaling channel once RTC is established.
-            signalingChannel.close();
         };
         this.dataChannel.onmessage = (event) => {
             console.log("Received data channel message:", event.data);
@@ -234,6 +254,20 @@ class WebRTCChannel {
      */
     onConnected(callback) {
         this._onConnectedCallback = callback;
+    }
+
+    /**
+     * Registers a callback to be invoked when the RTC connection is disconnected.
+     */
+    onDisconnected(callback) {
+        this._onDisconnectedCallback = callback;
+    }
+
+    /**
+     * Registers a callback to be invoked when the RTC signaling channel is initialized.
+     */
+    onInitialized(callback) {
+        this._onInitializedCallback = callback;
     }
 }
 
