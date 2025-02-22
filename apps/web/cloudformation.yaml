@@ -1,10 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: CloudFormation template for pourtle.com
 
-# Parameters:
-  # CertificateArn:
-  #   Type: String
-  #   Description: ARN of the ACM certificate for pourtle.com
+Parameters:
+  CertificateArn:
+    Type: String
+    Description: ARN of the ACM certificate for pourtle.com
 
 Resources:
   # S3 Bucket for pourtle.com
@@ -43,8 +43,8 @@ Resources:
     Properties:
       DistributionConfig:
         Enabled: true
-        # Aliases:
-        #   - pourtle.com
+        Aliases:
+          - pourtle.com
         Origins:
           - DomainName: !GetAtt AppBucket.DomainName
             Id: AppOrigin
@@ -85,9 +85,9 @@ Resources:
           MinTTL: 0
           DefaultTTL: 0
           MaxTTL: 0
-        # ViewerCertificate:
-        #   AcmCertificateArn: !Ref CertificateArn
-        #   SslSupportMethod: sni-only
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          SslSupportMethod: sni-only
         DefaultRootObject: index.html
         CustomErrorResponses:
           - ErrorCode: 404
