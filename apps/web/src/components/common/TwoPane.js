@@ -105,4 +105,4 @@ TwoPane.propTypes = {
     sx: PropTypes.object,
 };
 
-export default TwoPane;
+export default React.memo(TwoPane);

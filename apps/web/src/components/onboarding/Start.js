@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { QRCodeSVG } from 'qrcode.react';
 import { Box, Link, Typography, CircularProgress, Stack, useTheme } from '@mui/material';
@@ -12,13 +12,15 @@ const Start = ({ sessionCode, isLocal = false, requestJoin }) => {
     const { isMobile } = useDevice();
     const [copied, setCopied] = useState(false);
 
-    const universalLinkUrl = isLocal
-        ? sessionCode
-            ? `http://192.168.0.2:3000/join?session=${sessionCode}`
-            : 'http://192.168.0.2:3000'
-        : sessionCode
-            ? `https://pourtle.com/join?session=${sessionCode}`
-            : 'https://pourtle.com';
+    const universalLinkUrl = useMemo(() => {
+        return isLocal
+            ? sessionCode
+                ? `http://192.168.0.2:3000/join?session=${sessionCode}`
+                : 'http://192.168.0.2:3000'
+            : sessionCode
+                ? `https://pourtle.com/join?session=${sessionCode}`
+                : 'https://pourtle.com';
+    }, [isLocal, sessionCode]);
 
     // Handler for copying the universal link.
     const handleCopyLink = useCallback(() => {
@@ -173,4 +175,4 @@ Start.propTypes = {
     requestJoin: PropTypes.func.isRequired,
 };
 
-export default Start;
+export default React.memo(Start);

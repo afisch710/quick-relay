@@ -1,13 +1,13 @@
-import React, { createContext, useContext, useMemo, useState, useCallback } from 'react';
+import React, { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { GlobalStyles, useMediaQuery } from '@mui/material';
 import { useDevice } from '../context/DeviceProvider';
 import palette from './palette';
 import ThemeName from './ThemeName';
-
-const getBasePalette = (name) =>
-  name === ThemeName.light ? palette.light : palette.dark;
+import { useStorage } from '../context/StorageProvider';
+import { StorageKey } from '../utility/StorageKey';
+import { Feature } from '../utility/Feature';
 
 // Create a context to expose theme updater functions.
 const ThemeUpdateContext = createContext({
@@ -18,32 +18,27 @@ const ThemeUpdateContext = createContext({
 // Hook for consuming the updater context.
 export const useThemeUpdate = () => useContext(ThemeUpdateContext);
 
-const DynamicTheme = ({ children, initialTheme }) => {
+const DynamicTheme = ({ children }) => {
+  const { getItem, setItem } = useStorage();
   const { isMobile } = useDevice();
 
-  // Use useMediaQuery to check the system's color scheme.
+  const themeKey = useMemo(() => { return new StorageKey(Feature.settings, 'theme') }, []);
+
+  // Load initial theme from storage
+  const [themeName, setThemeName] = useState(getItem(themeKey) ?? ThemeName.system);
+
+  useEffect(() => {
+    // Persist new theme in storage
+    setItem(themeKey, themeName);
+  }, [themeName, themeKey, setItem]);
+
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-
-  // If no initialTheme is provided, use the system preference.
-  const [themeName, setThemeName] = useState(
-    initialTheme || (prefersDarkMode ? ThemeName.dark : ThemeName.light)
-  );
-
-  // Use customPalette to store dynamic updates to palette background colors.
-  const [customPalette, setCustomPalette] = useState({});
-
-  // Allow external code to update the background colors.
-  const updateBackgroundColors = useCallback((newBackgroundColors) => {
-    setCustomPalette((prev) => ({
-      ...prev,
-      background:
-        newBackgroundColors == null ||
-          newBackgroundColors[themeName] == null ||
-          !newBackgroundColors[themeName].primary
-          ? getBasePalette(themeName).background
-          : newBackgroundColors[themeName],
-    }));
-  }, [themeName]);
+  const getBasePalette = useCallback((name) => {
+    if (name === ThemeName.system) {
+      return prefersDarkMode ? palette.dark : palette.light;
+    }
+    return name === ThemeName.light ? palette.light : palette.dark;
+  }, [prefersDarkMode]);
 
   // Compose theme options, merging the base palette with dynamic updates.
   const themeOptions = useMemo(
@@ -53,11 +48,7 @@ const DynamicTheme = ({ children, initialTheme }) => {
         ...getBasePalette(themeName),
         background: {
           ...getBasePalette(themeName).background,
-          ...(customPalette.background || {}),
         },
-      },
-      transitions: {
-        background: 'background-color 2000ms ease-in-out',
       },
       icon: {
         opacity: '50%',
@@ -90,14 +81,14 @@ const DynamicTheme = ({ children, initialTheme }) => {
         },
       },
     }),
-    [themeName, isMobile, customPalette]
+    [themeName, isMobile, getBasePalette]
   );
 
   // Create the theme only when themeOptions change.
   const dynamicTheme = useMemo(() => createTheme(themeOptions), [themeOptions]);
 
   return (
-    <ThemeUpdateContext.Provider value={{ setThemeName, updateBackgroundColors }}>
+    <ThemeUpdateContext.Provider value={{ setThemeName }}>
       <ThemeProvider theme={dynamicTheme}>
         <GlobalStyles
           styles={{
@@ -106,8 +97,10 @@ const DynamicTheme = ({ children, initialTheme }) => {
               color: dynamicTheme.palette.text.primary,
               margin: 0,
               padding: 0,
-              transition: dynamicTheme.transitions.background,
             },
+            body: {
+              margin: 0,
+            }
           }}
         />
         {children}
@@ -125,4 +118,4 @@ DynamicTheme.defaultProps = {
   initialTheme: null,
 };
 
-export default DynamicTheme;
+export default React.memo(DynamicTheme);

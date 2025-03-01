@@ -7,23 +7,38 @@ import { ConnectionProvider } from './context/ConnectionProvider';
 import DynamicTheme from './theme/DynamicTheme';
 import StorageProvider from './context/StorageProvider';
 import OnboardingProvider from './context/OnboardingProvider';
+import { SharingProvider } from './context/SharingProvider';
+import ModalProvider from './context/ModalProvider';
+import SettingsProvider from './context/SettingsProvider';
+import DownloadProvider from './context/DownloadProvider';
+import PreviewProvider from './context/PreviewProvider';
 
 function App() {
   return (
-    <DeviceProvider>
-      <StorageProvider>
-        <ConnectionProvider>
-          <DynamicTheme>
-            <OnboardingProvider>
-              <BrowserRouter>
-                <HomePage />
-              </BrowserRouter>
-            </OnboardingProvider>
-          </DynamicTheme>
-        </ConnectionProvider>
-      </StorageProvider>
-    </DeviceProvider>
+    <BrowserRouter>
+      <DeviceProvider>
+        <DownloadProvider>
+          <StorageProvider>
+            <DynamicTheme>
+              <ModalProvider>
+                <SettingsProvider>
+                  <PreviewProvider>
+                    <ConnectionProvider>
+                      <OnboardingProvider>
+                        <SharingProvider>
+                          <HomePage />
+                        </SharingProvider>
+                      </OnboardingProvider>
+                    </ConnectionProvider>
+                  </PreviewProvider>
+                </SettingsProvider>
+              </ModalProvider>
+            </DynamicTheme>
+          </StorageProvider>
+        </DownloadProvider>
+      </DeviceProvider>
+    </BrowserRouter>
   );
 }
 
-export default App;
+export default React.memo(App);

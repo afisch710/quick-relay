@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import PropTypes from 'prop-types';
 
 const StorageContext = createContext({
@@ -9,7 +9,7 @@ const StorageContext = createContext({
 
 export const StorageProvider = ({ children }) => {
     // Helper: Check if localStorage is available
-    const isLocalStorageAvailable = () => {
+    const isLocalStorageAvailable = useCallback(() => {
         try {
             const testKey = '__storage_test__';
             window.localStorage.setItem(testKey, testKey);
@@ -19,11 +19,11 @@ export const StorageProvider = ({ children }) => {
             console.error(e);
             return false;
         }
-    };
+    }, []);
 
-    const storageAvailable = isLocalStorageAvailable();
+    const storageAvailable = useMemo(() => { return isLocalStorageAvailable() }, [isLocalStorageAvailable]);
 
-    const getItem = (key) => {
+    const getItem = useCallback((key) => {
         if (!storageAvailable) return null;
         try {
             const item = window.localStorage.getItem(key.toString());
@@ -32,31 +32,33 @@ export const StorageProvider = ({ children }) => {
             console.error(`Error reading localStorage key “${key}”:`, error);
             return null;
         }
-    };
+    }, [storageAvailable]);
 
-    const setItem = (key, value) => {
+    const setItem = useCallback((key, value) => {
         if (!storageAvailable) return;
         try {
-        window.localStorage.setItem(key, JSON.stringify(value));
+            window.localStorage.setItem(key, JSON.stringify(value));
         } catch (error) {
             console.error(`Error writing localStorage key “${key}”:`, error);
         }
-    };
+    }, [storageAvailable]);
 
-    const removeItem = (key) => {
+    const removeItem = useCallback((key) => {
         if (!storageAvailable) return;
         try {
             window.localStorage.removeItem(key);
         } catch (error) {
             console.error(`Error removing localStorage key “${key}”:`, error);
         }
-    };
+    }, [storageAvailable]);
 
-    const value = {
-        getItem,
-        setItem,
-        removeItem,
-    };
+    const value = useMemo(() => {
+        return ({
+            getItem,
+            setItem,
+            removeItem,
+        });
+    }, [getItem, setItem, removeItem])
 
     return (
         <StorageContext.Provider value={value}>
@@ -71,4 +73,4 @@ StorageProvider.propTypes = {
 
 export const useStorage = () => useContext(StorageContext);
 
-export default StorageProvider;
+export default React.memo(StorageProvider);

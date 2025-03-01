@@ -73,4 +73,4 @@ ConnectionProvider.propTypes = {
 
 export const useConnection = () => useContext(ConnectionContext);
 
-export default ConnectionContext;
+export default React.memo(ConnectionContext);

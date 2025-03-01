@@ -40,8 +40,10 @@ const Onboarding = ({ sessionToJoin = null, joinRequested = false, }) => {
             }
         }
 
-        initConnection(sessionToJoin);
-    }, [sessionToJoin, page, connect])
+        if (!sessionCode) {
+            initConnection(sessionToJoin);
+        }
+    }, [sessionCode, sessionToJoin, page, connect])
 
     // Transition for the main content (Start/Join)
     const contentTransitions = useTransition(page, {
@@ -67,7 +69,7 @@ const Onboarding = ({ sessionToJoin = null, joinRequested = false, }) => {
                         item === OnboardingPage.start ?
                             (
                                 <animated.div style={{ ...style, position: 'absolute', width: '100%', height: '100%' }}>
-                                    <Start isLocal={false} sessionCode={sessionCode} requestJoin={() => setPage(OnboardingPage.join)} />
+                                    <Start isLocal={true} sessionCode={sessionCode} requestJoin={() => setPage(OnboardingPage.join)} />
                                 </animated.div>
                             ) :
                             (
@@ -87,4 +89,4 @@ Onboarding.propTypes = {
     joinRequested: PropTypes.bool,
 };
 
-export default Onboarding;
+export default React.memo(Onboarding);

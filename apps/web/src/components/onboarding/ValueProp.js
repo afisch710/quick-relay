@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Box, Stack, Typography, Button, Checkbox, useTheme } from '@mui/material';
 import { useOnboarding } from '../../context/OnboardingProvider';
@@ -12,14 +12,14 @@ const ValueProp = ({ onGetStarted }) => {
     const { updateShowValueProp } = useOnboarding();
     const [checked, setChecked] = useState(false);
 
-    const handleCheckboxChange = (event) => {
+    const handleCheckboxChange = useCallback((event) => {
         setChecked(event.target.checked);
-    };
+    }, [setChecked]);
 
-    const handleGetStarted = () => {
+    const handleGetStarted = useCallback(() => {
         updateShowValueProp(!checked);
         onGetStarted();
-    };
+    }, [checked, onGetStarted, updateShowValueProp]);
 
     return (
         <OnboardingPage
@@ -80,4 +80,4 @@ ValueProp.propTypes = {
     onGetStarted: PropTypes.func.isRequired,
 }
 
-export default ValueProp;
+export default React.memo(ValueProp);
