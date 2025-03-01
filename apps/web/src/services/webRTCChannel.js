@@ -12,6 +12,7 @@ export default class WebRTCChannel {
         this._onConnectedCallback = null;
         this._onDisconnectedCallback = null;
         this._onInitializedCallback = null;
+        this._onSignalingChannelClosed = null;
         this.negotiationStarted = false;
         this.incomingFileTransfers = {};
         this.pendingCandidates = [];
@@ -26,6 +27,10 @@ export default class WebRTCChannel {
             console.log("Partner connected event received");
             this.startNegotiation();
         });
+        this.signalingChannel.onClosed((intentional) => {
+            console.log(`Signaling channel closed ${intentional ? 'intentionally' : 'unintentionally'}`);
+            this._onSignalingChannelClosed(intentional);
+        })
     }
 
     async open(sessionCode = null) {
@@ -371,6 +376,13 @@ export default class WebRTCChannel {
      */
     onInitialized(callback) {
         this._onInitializedCallback = callback;
+    }
+    
+    /**
+     * Registers a callback to be invoked when the RTC signaling channel is closed.
+     */
+    onSignalingChannelClosed(callback) {
+        this._onSignalingChannelClosed = callback;
     }
 }
 

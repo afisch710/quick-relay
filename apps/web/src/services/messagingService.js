@@ -8,6 +8,7 @@ class MessagingService {
         this._onInitializedCallback = null;
         this._onConnectedCallback = null;
         this._onDisconnectedCallback = null;
+        this._onSignalingChannelClosedCallback = null;
         this.connected = false;
         this.initialized = false;
         // Ongoing transfers keyed by fileId.
@@ -41,6 +42,9 @@ class MessagingService {
         this.webRTCChannel.onDataMessage((msg) => {
             this.handleIncomingMessage(msg);
         });
+        this.webRTCChannel.onSignalingChannelClosed((intentional) => {
+            if (this._onSignalingChannelClosedCallback) this._onSignalingChannelClosedCallback(intentional);
+        })
     }
 
     async onMessage(callback) {
@@ -250,6 +254,10 @@ class MessagingService {
 
     async onDisconnected(callback) {
         this._onDisconnectedCallback = callback;
+    }
+
+    async onSignalingChannelClosed(callback) {
+        this._onSignalingChannelClosedCallback = callback;
     }
 }
 

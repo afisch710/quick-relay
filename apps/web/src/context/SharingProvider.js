@@ -27,7 +27,7 @@ const SharingContext = createContext({
     receivedFiles: []
 });
 
-export const SharingProvider = ({ children }) => {
+const SharingProvider = ({ children }) => {
     const { isConnected } = useConnection();
     const [ready, setReady] = useState(isConnected);
     const [receivedCallback, setReceivedCallback] = useState(() => { });
@@ -283,4 +283,4 @@ SharingProvider.propTypes = {
 
 export const useSharing = () => useContext(SharingContext);
 
-export default React.memo(SharingContext);
+export default React.memo(SharingProvider);
