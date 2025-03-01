@@ -247,7 +247,7 @@ export const SharingProvider = ({ children }) => {
     }, [isConnected]);
 
     const deleteSentFile = useCallback((fileId) => {
-        setSentFiles((prev) => prev.filter((f) => f.fileId !== fileId));
+        setSentFiles((prev) => prev.filter((f) => f.metadata.fileId !== fileId));
     }, []);
 
     const deleteReceivedFile = useCallback((fileId) => {
