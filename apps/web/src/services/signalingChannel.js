@@ -8,9 +8,11 @@ export default class SignalingChannel {
         this.sessionCode = null;
         this.messageCallback = null;
         this.partnerConnectedCallback = null;
-        this.initializedCallback = null;
         this.partnerConnected = false;
+        this.closedCallback = null;
+        this.initializedCallback = null;
         this.initiator = false;
+        this.intentionalClose = false;
     }
 
     // Private method to establish the WebSocket connection.
@@ -56,6 +58,9 @@ export default class SignalingChannel {
      * @returns {Promise<string>} The session code in use.
      */
     async open(sessionCode = null) {
+        // reset state
+        this.intentionalClose = false;
+
         // If no connection exists or it is not open, connect.
         if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
             await this.#connect();
@@ -63,6 +68,7 @@ export default class SignalingChannel {
         }
 
         this.websocket.onclose = () => {
+            this.closedCallback(this.intentionalClose);
             console.log('Websocket closed');
         }
         // Process incoming messages.
@@ -124,6 +130,7 @@ export default class SignalingChannel {
      * Closes the WebSocket connection.
      */
     close() {
+        this.intentionalClose = true;
         if (this.websocket) {
             this.websocket.close();
             this.websocket = null;
@@ -178,6 +185,14 @@ export default class SignalingChannel {
         this.initializedCallback = callback;
     }
 
+    /**
+    * Sets an external callback that is invoked when websocket is closed.
+    * @param {function} callback The callback function.
+    */
+    onClosed(callback) {
+        this.closedCallback = callback;
+    }
+
     // Private method to create a new session.
     async #startSession() {
         const initMessage = { action: "init" };
@@ -221,6 +236,3 @@ export default class SignalingChannel {
         });
     }
 }
-
-// const signalingChannelInstance = new SignalingChannel();
-// export default signalingChannelInstance;

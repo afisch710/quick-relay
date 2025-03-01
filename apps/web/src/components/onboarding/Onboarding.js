@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Box, Stack } from '@mui/material';
 import { useTransition, animated } from '@react-spring/web';
@@ -9,17 +9,19 @@ import { useDevice } from '../../context/DeviceProvider';
 import OnboardingAnimation from './OnboardingAnimation';
 import { useOnboarding } from '../../context/OnboardingProvider';
 import ValueProp from './ValueProp';
+import Timeout from './Timeout';
 
 const OnboardingPage = Object.freeze({
     valueProp: 'valueProp',
     start: 'start',
     join: 'join',
+    timeout: 'timeout',
 });
 
 const Onboarding = ({ sessionToJoin = null, joinRequested = false, }) => {
     const { showValueProp } = useOnboarding();
     const { isMobile } = useDevice();
-    const { connect, isConnected } = useConnection();
+    const { connect, isConnected, signalingChannelState } = useConnection();
     const [sessionCode, setSessionCode] = useState(null);
     const [page, setPage] = useState(
         sessionToJoin || joinRequested ?
@@ -28,6 +30,13 @@ const Onboarding = ({ sessionToJoin = null, joinRequested = false, }) => {
                 OnboardingPage.valueProp :
                 OnboardingPage.start
     );
+
+    useEffect(() => {
+        if (!isConnected && signalingChannelState.closed && !signalingChannelState.intentional) {
+            // The websocket closed and wasn't intentional, prompt the user to see if they're still there
+            setPage(OnboardingPage.timeout);
+        }
+    }, [isConnected, signalingChannelState.closed, signalingChannelState.intentional]);
 
     useEffect(() => {
         if (isConnected) {
@@ -47,10 +56,10 @@ const Onboarding = ({ sessionToJoin = null, joinRequested = false, }) => {
             }
         }
 
-        if (!sessionCode) {
+        if (!sessionCode && !isConnected) {
             initConnection(sessionToJoin);
         }
-    }, [sessionCode, sessionToJoin, page, connect])
+    }, [sessionCode, isConnected, sessionToJoin, page, connect])
 
     // Transition for the main content (Start/Join)
     const contentTransitions = useTransition(page, {
@@ -59,6 +68,12 @@ const Onboarding = ({ sessionToJoin = null, joinRequested = false, }) => {
         leave: { opacity: 0, transform: 'translateY(-20px)' },
         config: { tension: 250, friction: 20 },
     });
+
+    const onContinueTimeout = useCallback(() => {
+        // Clear any old session code, this will trigger a new connection attempt
+        setSessionCode('');
+        setPage(OnboardingPage.start);
+    }, []);
 
     return (
         <Stack direction="column" height="100%" spacing={2} position="relative">
@@ -79,11 +94,18 @@ const Onboarding = ({ sessionToJoin = null, joinRequested = false, }) => {
                                     <Start isLocal={false} sessionCode={sessionCode} requestJoin={() => setPage(OnboardingPage.join)} />
                                 </animated.div>
                             ) :
-                            (
-                                <animated.div style={{ ...style, position: 'absolute', width: '100%', height: '100%' }}>
-                                    <Join sessionToJoin={sessionToJoin} requestStart={() => setPage(OnboardingPage.start)} />
-                                </animated.div>
-                            )
+                            item === OnboardingPage.join ?
+                                (
+                                    <animated.div style={{ ...style, position: 'absolute', width: '100%', height: '100%' }}>
+                                        <Join sessionToJoin={sessionToJoin} requestStart={() => setPage(OnboardingPage.start)} />
+                                    </animated.div>
+                                )
+                                :
+                                (
+                                    <animated.div style={{ ...style, position: 'absolute', width: '100%', height: '100%' }}>
+                                        <Timeout onContinue={onContinueTimeout} />
+                                    </animated.div>
+                                )
                 )}
             </Box>
             <OnboardingAnimation position={isMobile ? 'top' : 'bottom'} />
