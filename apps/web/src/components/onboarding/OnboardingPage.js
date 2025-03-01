@@ -57,7 +57,7 @@ const OnboardingPage = ({ title, content, footer }) => {
         // We only need to run this effect when the incoming title changes.
     }, [title, displayedTitle, animateTitle]);
 
-    const renderTitle = () => {
+    const renderTitle = useCallback(() => {
         if (React.isValidElement(displayedTitle)) {
             return displayedTitle;
         }
@@ -69,7 +69,7 @@ const OnboardingPage = ({ title, content, footer }) => {
                 {displayedTitle}
             </Typography>
         );
-    };
+    }, [displayedTitle]);
 
     return (
         <Stack direction="column" width="100%" height="100%" display="flex" gap={2}>
@@ -115,4 +115,4 @@ OnboardingPage.propTypes = {
     footer: PropTypes.element,
 };
 
-export default OnboardingPage;
+export default React.memo(OnboardingPage);

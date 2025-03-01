@@ -1,5 +1,5 @@
 // src/components/onboarding/SessionCodeInput.js
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import PropTypes from 'prop-types';
 import { Box } from '@mui/material';
 import { useTrail, animated } from '@react-spring/web';
@@ -93,7 +93,7 @@ const SessionCodeInput = forwardRef(function SessionCodeInput(
         delay: 200,
     });
 
-    const handleChange = (e, index) => {
+    const handleChange = useCallback((e, index) => {
         const val = e.target.value;
         if (!/^[A-Za-z0-9]*$/.test(val)) return; // Only allow alphanumeric.
         if (val.length > 1) return; // Only one character per box.
@@ -107,13 +107,13 @@ const SessionCodeInput = forwardRef(function SessionCodeInput(
         if (val && index < length - 1) {
             inputsRef.current[index + 1].focus();
         }
-    };
+    }, [length, onChange, values]);
 
-    const handleKeyDown = (e, index) => {
+    const handleKeyDown = useCallback((e, index) => {
         if (e.key === 'Backspace' && !values[index] && index > 0) {
             inputsRef.current[index - 1].focus();
         }
-    };
+    }, [values]);
 
     // Expose a clear() method to the parent via ref.
     useImperativeHandle(ref, () => ({
@@ -182,4 +182,4 @@ SessionCodeInput.propTypes = {
     inputSize: PropTypes.number,
 };
 
-export default SessionCodeInput;
+export default React.memo(SessionCodeInput);

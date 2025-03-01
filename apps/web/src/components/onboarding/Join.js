@@ -121,4 +121,4 @@ Join.propTypes = {
     requestStart: PropTypes.func.isRequired,
 };
 
-export default Join;
+export default React.memo(Join);

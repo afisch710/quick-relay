@@ -1,6 +1,6 @@
 // src/workers/signaling/signalingChannel.js
 
-class SignalingChannel {
+export default class SignalingChannel {
     constructor() {
         this.id = new Date().getTime();
         this.url = "wss://3k91muimk2.execute-api.us-east-1.amazonaws.com/prod";
@@ -25,34 +25,6 @@ class SignalingChannel {
             this.websocket.onerror = (err) => {
                 console.error("WebSocket error", err);
                 reject(err);
-            };
-            // Process incoming messages.
-            this.websocket.onmessage = (event) => {
-                let data;
-                try {
-                    data = JSON.parse(event.data);
-                } catch (e) {
-                    console.error("Error parsing incoming message:", e);
-                    return;
-                }
-                // If this is a ready signal, handle it internally.
-                if (data.action === "signal" && data.type === "ready") {
-                    if (!this.partnerConnected) {
-                        this.partnerConnected = true;
-                        console.log("Partner ready signal received.");
-                        if (this.partnerConnectedCallback) {
-                            this.partnerConnectedCallback(data);
-                        }
-                    }
-                    // Do not propagate the ready message externally.
-                    return;
-                }
-                // For all other messages, call the registered message callback.
-                if (this.messageCallback) {
-                    this.messageCallback(data);
-                } else {
-                    console.log("Received message:", data);
-                }
             };
         });
     }
@@ -89,6 +61,38 @@ class SignalingChannel {
             await this.#connect();
             await this.waitForSocketOpen();
         }
+
+        this.websocket.onclose = () => {
+            console.log('Websocket closed');
+        }
+        // Process incoming messages.
+        this.websocket.onmessage = (event) => {
+            let data;
+            try {
+                data = JSON.parse(event.data);
+            } catch (e) {
+                console.error("Error parsing incoming message:", e);
+                return;
+            }
+            // If this is a ready signal, handle it internally.
+            if (data.action === "signal" && data.type === "ready") {
+                if (!this.partnerConnected) {
+                    this.partnerConnected = true;
+                    console.log("Partner ready signal received.");
+                    if (this.partnerConnectedCallback) {
+                        this.partnerConnectedCallback(data);
+                    }
+                }
+                // Do not propagate the ready message externally.
+                return;
+            }
+            // For all other messages, call the registered message callback.
+            if (this.messageCallback) {
+                this.messageCallback(data);
+            } else {
+                console.log("Received message:", data);
+            }
+        };
 
         this.initiator = !sessionCode;
 
@@ -218,5 +222,5 @@ class SignalingChannel {
     }
 }
 
-const signalingChannelInstance = new SignalingChannel();
-export default signalingChannelInstance;
+// const signalingChannelInstance = new SignalingChannel();
+// export default signalingChannelInstance;

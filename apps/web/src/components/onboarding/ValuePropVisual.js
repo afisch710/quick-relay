@@ -57,4 +57,4 @@ const ValuePropVisual = () => {
   );
 };
 
-export default ValuePropVisual;
+export default React.memo(ValuePropVisual);

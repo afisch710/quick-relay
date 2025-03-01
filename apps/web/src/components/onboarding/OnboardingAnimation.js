@@ -192,4 +192,4 @@ OnboardingAnimation.propTypes = {
 
 };
 
-export default OnboardingAnimation;
+export default React.memo(OnboardingAnimation);

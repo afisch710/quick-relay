@@ -3,13 +3,15 @@ import PropTypes from 'prop-types';
 
 const DeviceContext = createContext({ isMobile: false });
 
+const MOBILE_WIDTH_LIMIT = 700;
+
 export const DeviceProvider = ({ children }) => {
     // Set initial state based on window.innerWidth (if running in a browser)
-    const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 600 : false);
+    const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= MOBILE_WIDTH_LIMIT : false);
 
     useEffect(() => {
         const handleResize = () => {
-            setIsMobile(window.innerWidth <= 600);
+            setIsMobile(window.innerWidth <= MOBILE_WIDTH_LIMIT);
         };
 
         window.addEventListener('resize', handleResize);
@@ -33,4 +35,4 @@ DeviceProvider.propTypes = {
 
 export const useDevice = () => useContext(DeviceContext);
 
-export default DeviceProvider;
+export default React.memo(DeviceProvider);

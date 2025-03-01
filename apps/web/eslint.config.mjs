@@ -15,6 +15,10 @@ export default [
         React: "readonly",
         test: "readonly",
         expect: "readonly",
+        describe: "readonly",
+        it: "readonly",
+        require: "readonly",
+        global: "readonly",
       },
     },
     settings: {
