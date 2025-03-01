@@ -19,7 +19,7 @@ const OnboardingPage = Object.freeze({
 const Onboarding = ({ sessionToJoin = null, joinRequested = false, }) => {
     const { showValueProp } = useOnboarding();
     const { isMobile } = useDevice();
-    const { connect } = useConnection();
+    const { connect, isConnected } = useConnection();
     const [sessionCode, setSessionCode] = useState(null);
     const [page, setPage] = useState(
         sessionToJoin || joinRequested ?
@@ -28,6 +28,13 @@ const Onboarding = ({ sessionToJoin = null, joinRequested = false, }) => {
                 OnboardingPage.valueProp :
                 OnboardingPage.start
     );
+
+    useEffect(() => {
+        if (isConnected) {
+            // Clear now setup session
+            setSessionCode('');
+        }
+    }, [isConnected])
 
     useEffect(() => {
         async function initConnection(code) {

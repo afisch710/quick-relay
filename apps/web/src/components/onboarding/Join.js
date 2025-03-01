@@ -59,6 +59,8 @@ const Join = ({ sessionToJoin, requestStart }) => {
     useEffect(() => {
         if (isConnected) {
             setConnecting(false);
+            // Clear completed setup session
+            setSessionCode('');
         }
     }, [isConnected]);
 
