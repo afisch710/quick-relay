@@ -108,7 +108,8 @@ class MessagingService {
             // For group transfers, inside the loop for each file:
             const { metadata: updatedMetadata, chunks } = FileTransfer.chunkFile(fileId, fileMetadata, dataArray[i]);
             // Remove thumbnail from metadata before sending as the data is too large
-            const { thumbnail, ...metadataWithoutThumbnail } = updatedMetadata;
+            // eslint-disable-next-line no-unused-vars
+            const { thumbnail: _thumbnail, ...metadataWithoutThumbnail } = updatedMetadata;
             await this.webRTCChannel.sendData(
                 JSON.stringify({
                     type: "file-transfer",

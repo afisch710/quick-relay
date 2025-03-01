@@ -123,7 +123,7 @@ const ReceivedFile = ({ file }) => {
         }
     }, [localData, localMetadata]);
 
-    const handleDownload = useCallback((e) => {
+    const handleDownload = useCallback(() => {
         const blob = localData instanceof Blob
             ? localData
             : new Blob([localData], { type: localMetadata.fileType });
@@ -149,7 +149,7 @@ const ReceivedFile = ({ file }) => {
         }
         if (autoDownload) {
             // Auto download on mount
-            handleDownload(null);
+            handleDownload();
         }
         setMounted(true);
     }, [autoDownload, mounted, handleDownload])
@@ -169,7 +169,7 @@ const ReceivedFile = ({ file }) => {
         deleteReceivedFile(localMetadata.fileId);
     }, [localMetadata.fileId, deleteReceivedFile]);
 
-    const handleFileClick = useCallback((e) => {
+    const handleFileClick = useCallback(() => {
         // If the info button was clicked, clear the flag and ignore this click.
         if (infoClickedRef.current) {
             infoClickedRef.current = false;

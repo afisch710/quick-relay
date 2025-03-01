@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import React, { useCallback, createContext, useContext } from 'react';
+import PropTypes from 'prop-types';
 
 const DownloadContext = createContext({
   downloadFiles: () => { },
@@ -57,6 +58,10 @@ const DownloadProvider = ({ children }) => {
       {children}
     </DownloadContext.Provider>
   );
+};
+
+DownloadProvider.propTypes = {
+  children: PropTypes.node,
 };
 
 export const useDownload = () => useContext(DownloadContext);

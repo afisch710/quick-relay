@@ -2327,7 +2327,7 @@
     "@types/eslint" "*"
     "@types/estree" "*"
 
-"@types/eslint@*":
+"@types/eslint@*", "@types/eslint@^9.6.1":
   version "9.6.1"
   resolved "https://registry.yarnpkg.com/@types/eslint/-/eslint-9.6.1.tgz#d5795ad732ce81715f27f75da913004a56751584"
   integrity sha512-FXx2pKgId/WyYo2jXw63kk7/+TY7u7AziEJxJAnSFzHlqTAS3Ync6SvgYAN/k4/PQpnnVuzoMuVnByKK2qp0ag==
@@ -5018,6 +5018,17 @@ eslint-webpack-plugin@^3.1.1:
     micromatch "^4.0.5"
     normalize-path "^3.0.0"
     schema-utils "^4.0.0"
+
+eslint-webpack-plugin@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/eslint-webpack-plugin/-/eslint-webpack-plugin-5.0.0.tgz#f131f066efeae9ebf738901869f0034764e71bb4"
+  integrity sha512-iDhXf2r55KO1UhMfpus8oGp93wdNF+934q5kEkwa7qn3BH9f51QEC11xQidt+8jfqRnEYYZa2/8lhac7U/vqWw==
+  dependencies:
+    "@types/eslint" "^9.6.1"
+    jest-worker "^29.7.0"
+    micromatch "^4.0.8"
+    normalize-path "^3.0.0"
+    schema-utils "^4.3.0"
 
 eslint@^8.3.0:
   version "8.57.1"

@@ -71,7 +71,8 @@ export const SharingProvider = ({ children }) => {
         }
 
         // Define a progress callback that updates sendingFiles and moves a file to sentFiles when complete.
-        const progressCallback = ({ fileId, fileProgress, totalProgress }) => {
+        // totalProgress param was removed for now
+        const progressCallback = ({ fileId, fileProgress }) => {
             setSendingFiles((prev) =>
                 prev.map((f) =>
                     f.metadata.fileId === fileId ? { ...f, metadata: { ...f.metadata, progress: fileProgress } } : f

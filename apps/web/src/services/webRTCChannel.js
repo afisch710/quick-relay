@@ -225,6 +225,7 @@ export default class WebRTCChannel {
                     }
                 }
             } catch (e) {
+                console.warn(e)
                 // If the message isn’t JSON, pass it along.
                 if (this.onDataChannelMessage) {
                     this.onDataChannelMessage(event.data);

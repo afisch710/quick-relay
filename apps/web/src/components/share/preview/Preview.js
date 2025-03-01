@@ -8,7 +8,7 @@ import Note from './Note';
 import PreviewUnavailable from './PreviewUnavailable';
 import { useDevice } from '../../../context/DeviceProvider';
 
-const Preview = ({ file, onError }) => {
+const Preview = ({ file }) => {
     const { isMobile } = useDevice();
 
     const fileType = useMemo(() => {

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Collapse, Divider } from '@mui/material';
 import { TransitionGroup } from 'react-transition-group';
 
-const FilesList = React.memo(({ listItems, theme }) => {
+const FilesList = ({ listItems, theme }) => {
     return (
         <TransitionGroup>
             {listItems.map(item => (
@@ -14,7 +14,7 @@ const FilesList = React.memo(({ listItems, theme }) => {
             ))}
         </TransitionGroup>
     );
-});
+};
 
 FilesList.propTypes = {
     listItems: PropTypes.arrayOf(PropTypes.node).isRequired,
