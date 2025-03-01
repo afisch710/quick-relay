@@ -28,7 +28,7 @@ const Timeout = ({ onContinue }) => {
                         width={'80%'}
                         textAlign={'center'}>
                         <Typography variant={isMobile ? 'h5' : 'h6'} sx={{ color: 'text.primary', maxWidth: 650 }}>
-                            Take your time! We're just checking.
+                            Take your time! We&apos;re just checking.
                         </Typography>
                     </Box>
                     <TimeoutVisual />
