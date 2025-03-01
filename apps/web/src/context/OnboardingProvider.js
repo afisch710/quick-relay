@@ -52,6 +52,9 @@ export const OnboardingProvider = ({ children }) => {
             showModal(content, canOnboardingModalClose, onClose, modalProps);
         } else {
             dismissModal();
+            // clear now setup session
+            setSessionToJoin('');
+            setJoinRequested(false);
         }
     }, [isConnected, joinRequested, sessionToJoin, showModal, dismissModal]);
 
