@@ -12,6 +12,8 @@ import ModalProvider from './context/ModalProvider';
 import SettingsProvider from './context/SettingsProvider';
 import DownloadProvider from './context/DownloadProvider';
 import PreviewProvider from './context/PreviewProvider';
+import AnalyticsProvider from './context/AnalyticsProvider';
+import GoogleAnalytics from './components/common/GoogleAnalytics';
 
 function App() {
   return (
@@ -23,13 +25,16 @@ function App() {
               <ModalProvider>
                 <SettingsProvider>
                   <PreviewProvider>
-                    <ConnectionProvider>
-                      <OnboardingProvider>
-                        <SharingProvider>
-                          <HomePage />
-                        </SharingProvider>
-                      </OnboardingProvider>
-                    </ConnectionProvider>
+                    <AnalyticsProvider>
+                      <ConnectionProvider>
+                        <OnboardingProvider>
+                          <SharingProvider>
+                            <GoogleAnalytics />
+                            <HomePage />
+                          </SharingProvider>
+                        </OnboardingProvider>
+                      </ConnectionProvider>
+                    </AnalyticsProvider>
                   </PreviewProvider>
                 </SettingsProvider>
               </ModalProvider>
