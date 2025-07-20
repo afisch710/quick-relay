@@ -3,6 +3,7 @@ import { useAnalytics } from '../../context/AnalyticsProvider';
 
 const GoogleAnalytics = () => {
   const { isAnalyticsEnabled } = useAnalytics();
+  // eslint-disable-next-line no-undef
   const GA_TRACKING_ID = process.env.REACT_APP_GA_ID;
 
   useEffect(() => {

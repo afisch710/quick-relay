@@ -55,6 +55,7 @@ const AnalyticsProvider = ({ children }) => {
   const trackPageView = (pagePath, pageTitle) => {
     if (!isAnalyticsEnabled || !window.gtag) return;
     
+    // eslint-disable-next-line no-undef
     window.gtag('config', process.env.REACT_APP_GA_ID, {
       page_path: pagePath,
       page_title: pageTitle,
