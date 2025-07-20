@@ -3,6 +3,7 @@ import React from 'react';
 import { Box, Stack, Typography, useTheme } from '@mui/material';
 import ThemeSetting from './ThemeSetting';
 import AutoDownloadSetting from './AutoDownloadSetting';
+import AnalyticsSetting from './AnalyticsSetting';
 
 const Settings = () => {
     const theme = useTheme();
@@ -31,6 +32,7 @@ const Settings = () => {
             <Stack direction="column" width="95%" height="100%" mt={2} gap={1}>
                 <ThemeSetting />
                 <AutoDownloadSetting />
+                <AnalyticsSetting />
             </Stack>
         </Stack>
     );

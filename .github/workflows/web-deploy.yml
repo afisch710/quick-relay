@@ -34,6 +34,8 @@ jobs:
       # Build React app
       - name: Build React app
         working-directory: apps/web
+        env:
+          REACT_APP_GA_ID: ${{ secrets.REACT_APP_GA_ID }}
         run: |
           yarn build
 
